@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async login(email: string, password: string) {
-      const { token } = await loginUser(email, password)
+      const token = await loginUser(email, password)
       this.token = token
       localStorage.setItem('token', token)
       this.user = decodeJwt(token)

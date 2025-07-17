@@ -1,12 +1,20 @@
 import axios from 'axios'
 
-// Create and configure the Axios instance
 const api = axios.create({
-  // Base URL for API requests, can be configured via environment variable
   baseURL: import.meta.env.VITE_API_BASE_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
+})
+
+// Attach JWT token to every request if present
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers = config.headers || {}
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 export default api
