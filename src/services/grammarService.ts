@@ -4,15 +4,15 @@ export interface GrammarSet {
   id: string
   name: string
   description?: string
+  grammars?: Grammar[]
   createdAt: string
   updatedAt: string
 }
 
 export interface Grammar {
   id: string
-  term: string
-  definition: string
-  example?: string
+  name: string
+  description?: string
   createdAt: string
   updatedAt: string
 }

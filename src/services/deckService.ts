@@ -1,19 +1,21 @@
 import api from './api'
+import type { Flashcard } from './flashcardService'
 
 export interface Deck {
-  id?: string
+  id: string
   name: string
+  flashcards: Flashcard[]
   description?: string
   createdAt?: string
   updatedAt?: string
 }
 
-export async function fetchDecks() {
+export async function fetchDecks(): Promise<Deck[]> {
   const response = await api.get('/decks')
   return response.data
 }
 
-export async function fetchDeckById(id: string) {
+export async function fetchDeckById(id: string): Promise<Deck> {
   const response = await api.get(`/decks/${id}`)
   return response.data
 }

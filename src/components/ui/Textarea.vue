@@ -1,17 +1,18 @@
 <template>
-  <input
+  <textarea
     :value="modelValue"
     :placeholder="placeholder"
     :disabled="disabled"
     :readonly="readonly"
-    @input="$emit('update:modelValue', ($event.target as HTMLInputElement)?.value || '')"
-    class="border rounded-md p-2 w-full"
-    :class="inputClasses"
-  />
+    :rows="rows"
+    @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement)?.value || '')"
+    class="border rounded-md p-2 w-full resize-none"
+    :class="textareaClasses"
+  ></textarea>
 </template>
 
 <script setup lang="ts">
-defineOptions({ name: 'UiInput' })
+defineOptions({ name: 'UiTextarea' })
 import { defineProps, defineEmits, computed } from 'vue'
 
 const props = defineProps({
@@ -31,11 +32,15 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  rows: {
+    type: Number,
+    default: 3,
+  },
 })
 
 defineEmits(['update:modelValue'])
 
-const inputClasses = computed(() => [
+const textareaClasses = computed(() => [
   'border rounded-md p-2',
   {
     'opacity-50 cursor-not-allowed': props.disabled,
