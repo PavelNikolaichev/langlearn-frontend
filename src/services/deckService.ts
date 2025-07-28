@@ -2,7 +2,7 @@ import api from './api'
 import type { Flashcard } from './flashcardService'
 
 export interface Deck {
-  id: string
+  id?: string
   name: string
   flashcards: Flashcard[]
   description?: string
@@ -20,8 +20,8 @@ export async function fetchDeckById(id: string): Promise<Deck> {
   return response.data
 }
 
-export async function createDeck(deck: Deck): Promise<Deck> {
-  const response = await api.post('/decks', deck)
+export async function createDeck(data: Partial<Deck>): Promise<Deck> {
+  const response = await api.post<Deck>('/decks', data)
   return response.data
 }
 

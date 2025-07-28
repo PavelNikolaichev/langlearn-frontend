@@ -16,19 +16,19 @@
             d="M10 19l-7-7m0 0l7-7m-7 7h18"
           />
         </svg>
-        Back to Decks
+        Back to Sets
       </UiButton>
     </div>
 
     <UiCard>
       <template #title>
         <div class="flex justify-between items-center">
-          <h1>{{ deck.name }}</h1>
-          <div class="text-sm text-gray-500">{{ cardCount }} cards</div>
+          <h1>{{ grammarSet.name }}</h1>
+          <div class="text-sm text-gray-500">{{ grammarCount }} grammars</div>
         </div>
       </template>
       <template #content>
-        <p v-if="deck.description">{{ deck.description }}</p>
+        <p v-if="grammarSet.description">{{ grammarSet.description }}</p>
         <p v-else class="text-gray-500 italic">No description provided</p>
       </template>
     </UiCard>
@@ -39,14 +39,14 @@
 import { defineProps, defineEmits } from 'vue'
 import UiCard from '@/components/ui/Card.vue'
 import UiButton from '@/components/ui/Button.vue'
-import type { Deck } from '@/services/deckService'
+import type { GrammarSet } from '@/services/grammarService'
 
 defineProps({
-  deck: {
-    type: Object as () => Deck,
+  grammarSet: {
+    type: Object as () => GrammarSet,
     required: true,
   },
-  cardCount: {
+  grammarCount: {
     type: Number,
     default: 0,
   },

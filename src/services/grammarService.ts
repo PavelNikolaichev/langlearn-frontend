@@ -40,3 +40,7 @@ export async function createGrammar(setId: string, data: Partial<Grammar>): Prom
   const response = await api.post<Grammar>(`/grammarsets/${setId}/grammars`, data)
   return response.data
 }
+
+export async function deleteGrammar(setId: string, grammarId: string): Promise<void> {
+  await api.delete(`/grammarsets/${setId}/grammars/${grammarId}`)
+}

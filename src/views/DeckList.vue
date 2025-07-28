@@ -141,7 +141,7 @@ const loading = ref(false)
 const showNew = ref(false)
 const showDeleteModal = ref(false)
 const deckToDelete = ref<EnhancedDeck | null>(null)
-const newDeck = ref<Deck>({ id: '', name: '', description: '', flashcards: [] })
+const newDeck = ref<Partial<Deck>>({ name: '', description: '', flashcards: [] })
 const router = useRouter()
 
 async function load() {
@@ -170,7 +170,7 @@ async function handleCreateDeck() {
 
   try {
     await createDeck(newDeck.value)
-    newDeck.value = { id: '', name: '', description: '', flashcards: [] }
+    newDeck.value = { name: '', description: '', flashcards: [] }
     showNew.value = false
     await load()
   } catch (error) {
