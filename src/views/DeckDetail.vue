@@ -1,6 +1,12 @@
 <template>
   <UiContainer>
-    <DeckHeader v-if="deck" :deck="deck" :card-count="flashcards.length" @back="goBack" />
+    <DeckHeader
+      v-if="deck"
+      :deck="deck"
+      :card-count="flashcards.length"
+      @back="goBack"
+      @practice="startPractice"
+    />
 
     <div class="grid grid-cols-1 gap-8 md:grid-cols-5">
       <div class="md:col-span-3">
@@ -56,6 +62,10 @@ async function remove(id: string) {
 
 function goBack() {
   router.push({ name: 'DeckList' })
+}
+
+function startPractice() {
+  router.push({ name: 'DeckPractice', params: { id: deckId } })
 }
 
 onMounted(load)

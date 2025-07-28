@@ -24,7 +24,31 @@
       <template #title>
         <div class="flex justify-between items-center">
           <h1>{{ deck.name }}</h1>
-          <div class="text-sm text-gray-500">{{ cardCount }} cards</div>
+          <div class="flex items-center space-x-3">
+            <div class="text-sm text-gray-500">{{ cardCount }} cards</div>
+            <UiButton
+              v-if="cardCount > 0"
+              @click="$emit('practice')"
+              size="sm"
+              class="bg-green-600 hover:bg-green-700"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Practice
+            </UiButton>
+          </div>
         </div>
       </template>
       <template #content>
@@ -52,5 +76,5 @@ defineProps({
   },
 })
 
-defineEmits(['back'])
+defineEmits(['back', 'practice'])
 </script>

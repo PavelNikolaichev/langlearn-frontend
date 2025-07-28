@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import DeckList from '@/views/DeckList.vue'
 import Login from '@/views/Login.vue'
 import DeckDetail from '@/views/DeckDetail.vue'
+import DeckPractice from '@/views/DeckPractice.vue'
 import GrammarSetList from '@/views/GrammarSetList.vue'
 import GrammarList from '@/views/GrammarList.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -25,6 +26,13 @@ const routes = [
     path: '/decks/:id',
     name: 'DeckDetail',
     component: DeckDetail,
+    meta: { requiresAuth: true },
+    props: true,
+  },
+  {
+    path: '/decks/:id/practice',
+    name: 'DeckPractice',
+    component: DeckPractice,
     meta: { requiresAuth: true },
     props: true,
   },
