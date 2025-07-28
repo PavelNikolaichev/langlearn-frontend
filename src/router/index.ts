@@ -5,6 +5,8 @@ import DeckDetail from '@/views/DeckDetail.vue'
 import DeckPractice from '@/views/DeckPractice.vue'
 import GrammarSetList from '@/views/GrammarSetList.vue'
 import GrammarList from '@/views/GrammarList.vue'
+import GrammarPracticeSetup from '@/views/GrammarPracticeSetup.vue'
+import GrammarPractice from '@/views/GrammarPractice.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const routes = [
@@ -46,6 +48,19 @@ const routes = [
     path: '/grammarsets/:setId/grammars',
     name: 'GrammarList',
     component: GrammarList,
+    meta: { requiresAuth: true },
+    props: true,
+  },
+  {
+    path: '/grammar-practice-setup',
+    name: 'GrammarPracticeSetup',
+    component: GrammarPracticeSetup,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/grammar-practice',
+    name: 'GrammarPractice',
+    component: GrammarPractice,
     meta: { requiresAuth: true },
     props: true,
   },

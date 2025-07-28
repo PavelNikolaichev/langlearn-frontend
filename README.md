@@ -4,6 +4,8 @@ This is the frontend for the Langlearn project, a language learning platform tha
 
 Currently this project is in development, and for now the main issue is to standardize the codebase/styles and make it more maintainable, also there's a lot of room for improvement for caching and optimizing db queries.
 
+For backend implementation, please refer to the [Langlearn Backend](https://github.com/PavelNikolaichev/LangLearn.Backend)
+
 ## Project Setup
 
 Firstly, set up the environment variables by copying the `.env.example` file to `.env` and filling in the required values.

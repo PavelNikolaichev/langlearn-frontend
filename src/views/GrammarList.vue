@@ -5,6 +5,7 @@
       :grammar-set="set"
       :grammar-count="grammars.length"
       @back="goBack"
+      @practice="startPractice"
     />
 
     <div class="grid grid-cols-1 gap-8 md:grid-cols-5">
@@ -65,6 +66,10 @@ async function remove(id: string) {
 
 function goBack() {
   router.push({ name: 'GrammarSetList' })
+}
+
+function startPractice() {
+  router.push({ name: 'GrammarPracticeSetup' })
 }
 
 onMounted(load)
