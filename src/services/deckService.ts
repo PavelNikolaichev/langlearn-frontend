@@ -24,3 +24,7 @@ export async function createDeck(deck: Deck): Promise<Deck> {
   const response = await api.post('/decks', deck)
   return response.data
 }
+
+export async function deleteDeck(id: string): Promise<void> {
+  await api.delete(`/decks/${id}`)
+}

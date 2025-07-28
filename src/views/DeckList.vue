@@ -46,9 +46,20 @@
           <p class="line-clamp-2 mb-4 text-muted-foreground">
             {{ deck.description || 'No description' }}
           </p>
-          <div class="flex items-center text-sm text-muted-foreground">
-            <MessageSquareIcon class="w-5 h-5 mr-1" />
-            <span>{{ deck.cardCount || 0 }} cards</span>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center text-sm text-muted-foreground">
+              <MessageSquareIcon class="w-5 h-5 mr-1" />
+              <span>{{ deck.cardCount || 0 }} cards</span>
+            </div>
+            <Button
+              @click.stop="confirmDelete(deck)"
+              variant="ghost"
+              size="sm"
+              class="text-red-500 hover:text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/20"
+              title="Delete deck"
+            >
+              <TrashIcon class="w-5 h-5" />
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -83,12 +94,31 @@
         </CardFooter>
       </Card>
     </Modal>
+
+    <!-- Delete Confirmation Modal -->
+    <Modal :open="showDeleteModal" @close="cancelDelete">
+      <Card class="w-full max-w-lg">
+        <CardHeader>
+          <CardTitle>Delete Deck</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Are you sure you want to delete "{{ deckToDelete?.name }}"?</p>
+          <p class="text-sm text-muted-foreground mt-2">
+            This action cannot be undone and will delete all flashcards in this deck.
+          </p>
+        </CardContent>
+        <CardFooter class="flex justify-between">
+          <Button variant="outline" @click="cancelDelete"> Cancel </Button>
+          <Button variant="destructive" @click="handleDelete"> Delete Deck </Button>
+        </CardFooter>
+      </Card>
+    </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { fetchDecks, createDeck, type Deck } from '@/services/deckService'
+import { fetchDecks, createDeck, deleteDeck, type Deck } from '@/services/deckService'
 import { useRouter } from 'vue-router'
 import Card from '@/components/ui/shadcn/Card.vue'
 import CardHeader from '@/components/ui/shadcn/CardHeader.vue'
@@ -100,7 +130,7 @@ import Input from '@/components/ui/shadcn/Input.vue'
 import Textarea from '@/components/ui/shadcn/Textarea.vue'
 import Modal from '@/components/ui/shadcn/Modal.vue'
 import LoadingDots from '@/components/ui/LoadingDots.vue'
-import { PlusIcon, LayersIcon, MessageSquareIcon, InboxIcon } from 'lucide-vue-next'
+import { PlusIcon, LayersIcon, MessageSquareIcon, InboxIcon, TrashIcon } from 'lucide-vue-next'
 
 interface EnhancedDeck extends Deck {
   cardCount?: number
@@ -109,6 +139,8 @@ interface EnhancedDeck extends Deck {
 const decks = ref<EnhancedDeck[]>([])
 const loading = ref(false)
 const showNew = ref(false)
+const showDeleteModal = ref(false)
+const deckToDelete = ref<EnhancedDeck | null>(null)
 const newDeck = ref<Deck>({ id: '', name: '', description: '', flashcards: [] })
 const router = useRouter()
 
@@ -144,6 +176,29 @@ async function handleCreateDeck() {
   } catch (error) {
     console.error('Failed to create deck:', error)
   }
+}
+
+function confirmDelete(deck: EnhancedDeck) {
+  deckToDelete.value = deck
+  showDeleteModal.value = true
+}
+
+async function handleDelete() {
+  if (!deckToDelete.value?.id) return
+
+  try {
+    await deleteDeck(deckToDelete.value.id)
+    showDeleteModal.value = false
+    deckToDelete.value = null
+    await load()
+  } catch (error) {
+    console.error('Failed to delete deck:', error)
+  }
+}
+
+function cancelDelete() {
+  deckToDelete.value = null
+  showDeleteModal.value = false
 }
 
 onMounted(load)
