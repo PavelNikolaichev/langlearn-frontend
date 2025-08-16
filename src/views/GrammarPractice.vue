@@ -220,26 +220,28 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import type { GrammarExercise } from '@/services/llmService'
+import { useRouter } from 'vue-router'
+import type { GrammarExercise } from '@/stores/grammar'
+import { useGrammarPracticeStore } from '@/stores/grammar'
 import UiContainer from '@/components/ui/Container.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
 
-const route = useRoute()
 const router = useRouter()
+const grammarPracticeStore = useGrammarPracticeStore()
 
 // State
-const exercises = ref<GrammarExercise[]>([])
-const currentExerciseIndex = ref(0)
 const userAnswer = ref('')
 const showAnswer = ref(false)
-const sessionCompleted = ref(false)
-const correctAnswers = ref(0)
-const grammarNames = ref('')
-const deckName = ref('')
 
 // Computed
+const exercises = computed(() => grammarPracticeStore.exercises)
+const currentExerciseIndex = computed(() => grammarPracticeStore.currentExerciseIndex)
+const sessionCompleted = computed(() => grammarPracticeStore.sessionCompleted)
+const correctAnswers = computed(() => grammarPracticeStore.correctAnswers)
+const grammarNames = computed(() => grammarPracticeStore.grammarNames)
+const deckName = computed(() => grammarPracticeStore.deckName)
+
 const currentExercise = computed(() => {
   return exercises.value[currentExerciseIndex.value] || null
 })
@@ -255,20 +257,9 @@ const isCorrect = computed(() => {
 
 // Methods
 function loadExercises() {
-  try {
-    const exercisesParam = route.params.exercises as string
-    if (exercisesParam) {
-      exercises.value = JSON.parse(exercisesParam)
-    }
-
-    grammarNames.value = (route.params.grammarNames as string) || ''
-    deckName.value = (route.params.deckName as string) || ''
-
-    if (exercises.value.length === 0) {
-      throw new Error('No exercises provided')
-    }
-  } catch (error) {
-    console.error('Failed to load exercises:', error)
+  // Check if exercises are available in the store
+  if (exercises.value.length === 0) {
+    console.error('No exercises available')
     router.push({ name: 'GrammarPracticeSetup' })
   }
 }
@@ -277,7 +268,6 @@ function formatExerciseType(type: GrammarExercise['type']): string {
   const formats = {
     'fill-blank': 'Fill in the Blank',
     'multiple-choice': 'Multiple Choice',
-    transformation: 'Transformation',
     'error-correction': 'Error Correction',
   }
   return formats[type] || type
@@ -289,7 +279,7 @@ function submitAnswer() {
   showAnswer.value = true
 
   if (isCorrect.value) {
-    correctAnswers.value++
+    grammarPracticeStore.incrementCorrectAnswers()
   }
 }
 
@@ -297,25 +287,14 @@ function nextExercise() {
   userAnswer.value = ''
   showAnswer.value = false
 
-  if (currentExerciseIndex.value < exercises.value.length - 1) {
-    currentExerciseIndex.value++
-  } else {
-    sessionCompleted.value = true
-  }
+  grammarPracticeStore.nextExercise()
 }
 
 function restartSession() {
-  currentExerciseIndex.value = 0
   userAnswer.value = ''
   showAnswer.value = false
-  sessionCompleted.value = false
-  correctAnswers.value = 0
 
-  // Shuffle exercises for variety
-  for (let i = exercises.value.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[exercises.value[i], exercises.value[j]] = [exercises.value[j], exercises.value[i]]
-  }
+  grammarPracticeStore.restartSession()
 }
 
 function goBack() {

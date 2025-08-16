@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.7.0",
+    "@mediapipe/tasks-genai": "^0.10.24",
     "@tailwindcss/vite": "^4.1.11",
     "@vueuse/core": "^13.5.0",
     "axios": "^1.10.0",
@@ -40,6 +41,7 @@
     "@vue/eslint-config-typescript": "^14.5.1",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.7.0",
+    "@webgpu/types": "^0.1.64",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.29.0",
     "eslint-plugin-playwright": "^2.2.0",

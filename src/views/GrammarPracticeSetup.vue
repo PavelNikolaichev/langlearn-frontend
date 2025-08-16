@@ -233,12 +233,18 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchGrammarSets, type Grammar, type GrammarSet } from '@/services/grammarService'
 import { fetchDecks, type Deck } from '@/services/deckService'
-import { llmService } from '@/services/llmService'
+import { LLMService } from '@/services/llmService'
+import { useGrammarPracticeStore } from '@/stores/grammar'
 import UiContainer from '@/components/ui/Container.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
+import { LocalLLMExerciseGenerator } from '@/services/ExerciseGenerator/localLLMExerciseGenerator'
 
 const router = useRouter()
+const grammarPracticeStore = useGrammarPracticeStore()
+
+const llmService = LLMService.getInstance()
+const localLLMExerciseGenerator: LocalLLMExerciseGenerator = LocalLLMExerciseGenerator.getInstance()
 
 // State
 const grammarSets = ref<GrammarSet[]>([])
@@ -295,10 +301,10 @@ async function initializeModel() {
   }
 }
 
-function checkModelStatus() {
-  if (llmService.isModelLoaded()) {
+async function checkModelStatus() {
+  if (await llmService.isModelReady()) {
     modelStatus.value = 'loaded'
-  } else if (llmService.isModelLoading()) {
+  } else if (await llmService.isModelLoading()) {
     modelStatus.value = 'loading'
   } else {
     modelStatus.value = 'not-loaded'
@@ -344,21 +350,20 @@ async function startPractice() {
   isGenerating.value = true
 
   try {
-    const exercises = await llmService.generateGrammarExercises(
+    const exercises = await localLLMExerciseGenerator.generateGrammarExercises(
       selectedGrammars.value,
       selectedDeck.value?.flashcards,
       exerciseCount.value,
     )
 
-    // Navigate to practice view with generated exercises
-    router.push({
-      name: 'GrammarPractice',
-      params: {
-        exercises: JSON.stringify(exercises),
-        grammarNames: selectedGrammars.value.map((g) => g.name).join(', '),
-        deckName: selectedDeck.value?.name || '',
-      },
-    })
+    // Store the data in the store instead of passing through router params
+    grammarPracticeStore.setExercises(exercises)
+    grammarPracticeStore.setGrammarNames(selectedGrammars.value.map((g) => g.name).join(', '))
+    grammarPracticeStore.setDeckName(selectedDeck.value?.name || '')
+    grammarPracticeStore.resetSession()
+
+    // Navigate to practice view
+    router.push({ name: 'GrammarPractice' })
   } catch (error) {
     console.error('Failed to generate exercises:', error)
     alert('Failed to generate exercises. Please try again.')
