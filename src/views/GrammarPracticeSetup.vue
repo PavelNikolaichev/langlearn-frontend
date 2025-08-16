@@ -233,7 +233,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchGrammarSets, type Grammar, type GrammarSet } from '@/services/grammarService'
 import { fetchDecks, type Deck } from '@/services/deckService'
-import { LLMService } from '@/services/llmService'
+import { LocalLLMService } from '@/services/llm/localLLMService'
 import { useGrammarPracticeStore } from '@/stores/grammar'
 import UiContainer from '@/components/ui/Container.vue'
 import UiButton from '@/components/ui/Button.vue'
@@ -243,7 +243,7 @@ import { LocalLLMExerciseGenerator } from '@/services/ExerciseGenerator/localLLM
 const router = useRouter()
 const grammarPracticeStore = useGrammarPracticeStore()
 
-const llmService = LLMService.getInstance()
+const llmService = LocalLLMService.getInstance()
 const localLLMExerciseGenerator: LocalLLMExerciseGenerator = LocalLLMExerciseGenerator.getInstance()
 
 // State

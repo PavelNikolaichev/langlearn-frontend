@@ -1,4 +1,5 @@
 import { pipeline, env, type ProgressInfo, TextGenerationPipeline } from '@huggingface/transformers'
+import type { LLMInterface } from './LLMInterface'
 
 // Configure to run in browser with WebAssembly
 env.allowLocalModels = false
@@ -10,15 +11,15 @@ let isLoading = false
 // TODO: add custom model loading and hf token options input to load gemma
 const MODEL_NAME = 'onnx-community/Qwen3-4B-ONNX'
 
-export class LLMService {
-  private static instance: LLMService
+export class LocalLLMService implements LLMInterface {
+  private static instance: LocalLLMService
 
-  public static getInstance(): LLMService {
-    if (!LLMService.instance) {
-      LLMService.instance = new LLMService()
+  public static getInstance(): LocalLLMService {
+    if (!LocalLLMService.instance) {
+      LocalLLMService.instance = new LocalLLMService()
     }
 
-    return LLMService.instance
+    return LocalLLMService.instance
   }
 
   public async initializeModel(): Promise<void> {

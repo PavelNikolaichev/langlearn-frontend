@@ -1,14 +1,14 @@
 import type { GrammarExercise } from '@/stores/grammar'
 import type { Flashcard } from '../flashcardService'
 import type { Grammar } from '../grammarService'
-import { LLMService } from '../llmService'
+import { LocalLLMService } from '../llm/localLLMService'
 import type { ExerciseGeneratorInterface } from './exerciseGeneratorInterface'
 
 export class LocalLLMExerciseGenerator implements ExerciseGeneratorInterface {
   public name = 'LocalLLMExerciseGenerator'
 
   private static instance: LocalLLMExerciseGenerator
-  private textGenerator: LLMService
+  private textGenerator: LocalLLMService
 
   public static getInstance(): LocalLLMExerciseGenerator {
     if (!LocalLLMExerciseGenerator.instance) {
@@ -19,7 +19,7 @@ export class LocalLLMExerciseGenerator implements ExerciseGeneratorInterface {
   }
 
   private constructor() {
-    this.textGenerator = LLMService.getInstance()
+    this.textGenerator = LocalLLMService.getInstance()
   }
 
   async generateGrammarExercises(
