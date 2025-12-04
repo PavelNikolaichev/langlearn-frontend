@@ -9,15 +9,10 @@ import type {
   ResponseFormatJSONSchema,
 } from 'openai/resources'
 
-const openAIStore = useOpenAIStore()
-
-const openaiClient = new OpenAI({
-  apiKey: openAIStore.getApiKey,
-  baseURL: openAIStore.getBaseURL,
-})
-
 export class OpenAILLMService implements LLMInterface {
   private static instance: OpenAILLMService
+  private openAIStore = useOpenAIStore()
+  private openaiClient: OpenAI
 
   public static getInstance(): OpenAILLMService {
     if (!OpenAILLMService.instance) {
@@ -25,6 +20,17 @@ export class OpenAILLMService implements LLMInterface {
     }
 
     return OpenAILLMService.instance
+  }
+
+  private constructor() {
+    this.openaiClient = new OpenAI({
+      apiKey: this.openAIStore.getApiKey,
+      baseURL: this.openAIStore.getBaseURL,
+      dangerouslyAllowBrowser: true,
+    })
+    console.log(
+      `OpenAI client initialized with baseURL: ${this.openAIStore.getBaseURL} and model: ${this.openAIStore.getModel}`,
+    )
   }
 
   async getResponse(
@@ -46,8 +52,8 @@ export class OpenAILLMService implements LLMInterface {
         { role: 'user', content: prompt, type: 'message' } as ChatCompletionUserMessageParam,
       ]
 
-      const response = await openaiClient.chat.completions.create({
-        model: openAIStore.getModel,
+      const response = await this.openaiClient.chat.completions.create({
+        model: this.openAIStore.getModel,
         messages: messages,
         response_format: output_format,
       })
@@ -59,7 +65,7 @@ export class OpenAILLMService implements LLMInterface {
 
       throw new Error('No valid response received')
     } catch (error) {
-      console.error(`Error fetching response from ${openAIStore.getBaseURL}:`, error)
+      console.error(`Error fetching response from ${this.openAIStore.getBaseURL}:`, error)
       throw new Error('Failed to get response from OpenAI API')
     }
   }

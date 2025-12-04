@@ -2,9 +2,9 @@ import { defineStore } from 'pinia'
 
 export const useOpenAIStore = defineStore('openai', {
   state: () => ({
-    apiKey: '',
-    baseURL: '',
-    model: 'gpt-3.5-turbo',
+    apiKey: '', // User must supply their OpenRouter API key at runtime
+    baseURL: localStorage.getItem('openAIBaseURL') || 'https://openrouter.ai/api/v1',
+    model: localStorage.getItem('openAIModel') || 'x-ai/grok-4-fast:free', // or nvidia/nemotron-nano-9b-v2:free
   }),
   actions: {
     setApiKey(key: string) {
@@ -12,9 +12,11 @@ export const useOpenAIStore = defineStore('openai', {
     },
     setBaseURL(url: string) {
       this.baseURL = url
+      localStorage.setItem('openAIBaseURL', url)
     },
     setModel(model: string) {
       this.model = model
+      localStorage.setItem('openAIModel', model)
     },
   },
   getters: {

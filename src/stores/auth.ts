@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { loginUser } from '@/services/authService'
+import { loginUser, refreshToken } from '@/services/authService'
 import { decodeJwt, isJwtExpired } from '@/utils/jwt'
 
 export const useAuthStore = defineStore('auth', {

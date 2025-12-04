@@ -1,8 +1,8 @@
-import type { GrammarExercise } from '@/stores/grammar'
+import { grammarSchema, type GrammarExercise } from '@/stores/grammar'
 import type { Flashcard } from '../flashcardService'
 import type { Grammar } from '../grammarService'
 import type { ExerciseGeneratorInterface } from './exerciseGeneratorInterface'
-import { OpenAILLMService } from '../llm/OpenAILLMService'
+import { OpenAILLMService } from '../llm/openAILLMService'
 import type { ResponseFormatJSONSchema } from 'openai/resources'
 
 export class OpenAIExerciseGenerator implements ExerciseGeneratorInterface {
@@ -106,7 +106,18 @@ export class OpenAIExerciseGenerator implements ExerciseGeneratorInterface {
 
     const exercises: GrammarExercise[] = JSON.parse(response)
 
-    return exercises.slice(0, count)
+    console.log('Generated exercises:', exercises)
+
+    const validationResults = exercises.map((exercise) =>
+      grammarSchema.safeParse({ ...exercise, id: crypto.randomUUID() }),
+    )
+    const validExercises = validationResults
+      .filter((result) => result.success)
+      .map((result) => result.data)
+
+    console.log('Valid exercises:', validExercises)
+
+    return validExercises.slice(0, count)
   }
 
   private async getSystemPrompt(): Promise<string> {
@@ -132,10 +143,13 @@ export class OpenAIExerciseGenerator implements ExerciseGeneratorInterface {
   ) {
     return `
     Generate ${count} grammar exercises for the following grammar topics:
-    \`\`\`${grammars.map((g) => `${g.name} - ${g.description}`).join('\n')}. ${
+    \`\`\`
+    ${grammars.map((g) => `${g.name} - ${g.description}`).join('\n')}. ${
       vocabulary
         ? `Incorporate the following vocabulary: ${vocabulary.map((v) => `${v.front} - ${v.back}${v.notes ? ` - ${v.notes}` : ''}`).join(', ')}.`
         : ''
-    }`
+    }
+    \`\`\`
+    `
   }
 }

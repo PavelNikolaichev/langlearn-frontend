@@ -29,33 +29,83 @@
       </p>
     </div>
 
-    <!-- Model Status -->
+    <!-- Model / Backend Configuration -->
     <UiCard class="mb-6">
+      <template #title>
+        <h2 class="text-lg font-semibold">AI Backend Configuration</h2>
+      </template>
       <template #content>
-        <div class="flex items-center space-x-3">
-          <div class="flex items-center">
-            <div
-              :class="[
-                'w-3 h-3 rounded-full mr-2',
-                modelStatus === 'loaded'
-                  ? 'bg-green-500'
-                  : modelStatus === 'loading'
-                    ? 'bg-yellow-500'
-                    : 'bg-gray-400',
-              ]"
-            ></div>
-            <span class="text-sm font-medium">
-              {{ modelStatusText }}
-            </span>
+        <div class="space-y-4">
+          <div class="grid md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="block text-sm font-medium mb-1">Backend</label>
+              <select v-model="selectedBackend" class="w-full p-2 border rounded-lg text-sm">
+                <option value="openrouter">OpenRouter (Default)</option>
+                <option value="openai">OpenAI</option>
+                <option value="local">Local (Browser)</option>
+              </select>
+            </div>
+            <div v-if="selectedBackend !== 'local'">
+              <label class="block text-sm font-medium mb-1">API Key</label>
+              <input
+                type="password"
+                v-model="apiKey"
+                placeholder="sk-..."
+                class="w-full p-2 border rounded-lg text-sm"
+              />
+            </div>
+            <div v-if="selectedBackend !== 'local'">
+              <label class="block text-sm font-medium mb-1">Model</label>
+              <input
+                type="text"
+                v-model="model"
+                class="w-full p-2 border rounded-lg text-sm"
+                placeholder="anthropic/claude-3.5-sonnet"
+              />
+            </div>
           </div>
-          <UiButton
-            v-if="modelStatus === 'not-loaded'"
-            @click="initializeModel"
-            size="sm"
-            :disabled="modelStatus !== 'not-loaded'"
-          >
-            Load AI Model
-          </UiButton>
+          <div v-if="selectedBackend !== 'local'" class="grid md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="block text-sm font-medium mb-1">Base URL</label>
+              <input
+                type="text"
+                v-model="baseURL"
+                class="w-full p-2 border rounded-lg text-sm"
+                :placeholder="
+                  selectedBackend === 'openrouter'
+                    ? 'https://openrouter.ai/api/v1'
+                    : 'https://api.openai.com/v1'
+                "
+              />
+            </div>
+            <div class="flex items-center mt-6 space-x-3">
+              <UiButton size="sm" variant="secondary" @click="applyBackendConfig">Apply</UiButton>
+              <UiButton
+                v-if="isLocal && modelStatus === 'not-loaded'"
+                size="sm"
+                :disabled="modelStatus !== 'not-loaded'"
+                @click="initializeModel"
+                >Load Local Model</UiButton
+              >
+            </div>
+            <div class="flex items-center mt-6" v-if="isLocal">
+              <div
+                :class="[
+                  'w-3 h-3 rounded-full mr-2',
+                  modelStatus === 'loaded'
+                    ? 'bg-green-500'
+                    : modelStatus === 'loading'
+                      ? 'bg-yellow-500'
+                      : 'bg-gray-400',
+                ]"
+              ></div>
+              <span class="text-xs text-gray-600">{{ modelStatusText }}</span>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500">
+            For OpenRouter, paste your API key from dashboard. Local backend loads an ONNX model
+            in-browser (experimental, slower on first load).
+          </p>
         </div>
       </template>
     </UiCard>
@@ -238,13 +288,28 @@ import { useGrammarPracticeStore } from '@/stores/grammar'
 import UiContainer from '@/components/ui/Container.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
-import { LocalLLMExerciseGenerator } from '@/services/ExerciseGenerator/localLLMExerciseGenerator'
+import type { ExerciseGeneratorInterface } from '@/services/ExerciseGenerator/exerciseGeneratorInterface'
+import {
+  getExerciseGenerator,
+  type LLMBackend,
+} from '@/services/ExerciseGenerator/generatorFactory'
+import { useOpenAIStore } from '@/stores/openai'
 
 const router = useRouter()
 const grammarPracticeStore = useGrammarPracticeStore()
 
 const llmService = LocalLLMService.getInstance()
-const localLLMExerciseGenerator: LocalLLMExerciseGenerator = LocalLLMExerciseGenerator.getInstance()
+const openAIStore = useOpenAIStore()
+
+// Backend selection state
+const selectedBackend = ref<LLMBackend>('openrouter')
+const isLocal = computed(() => selectedBackend.value === 'local')
+const exerciseGenerator = ref<ExerciseGeneratorInterface>(getExerciseGenerator('openrouter'))
+
+// Config inputs
+const apiKey = ref(openAIStore.getApiKey || '')
+const baseURL = ref(openAIStore.getBaseURL || 'https://openrouter.ai/api/v1')
+const model = ref(openAIStore.getModel || 'anthropic/claude-3.5-sonnet')
 
 // State
 const grammarSets = ref<GrammarSet[]>([])
@@ -258,7 +323,18 @@ const isGenerating = ref(false)
 const modelStatus = ref<'not-loaded' | 'loading' | 'loaded'>('not-loaded')
 
 const canStartPractice = computed(() => {
-  return selectedGrammars.value.length > 0 && modelStatus.value === 'loaded' && !isGenerating.value
+  // Local requires model loaded; remote requires api key + model
+  if (selectedBackend.value === 'local') {
+    return (
+      selectedGrammars.value.length > 0 && modelStatus.value === 'loaded' && !isGenerating.value
+    )
+  }
+  return (
+    selectedGrammars.value.length > 0 &&
+    apiKey.value.trim().length > 10 &&
+    model.value.trim().length > 0 &&
+    !isGenerating.value
+  )
 })
 
 const modelStatusText = computed(() => {
@@ -290,18 +366,22 @@ async function loadData() {
 }
 
 async function initializeModel() {
-  modelStatus.value = 'loading'
-  try {
-    await llmService.initializeModel()
-    modelStatus.value = 'loaded'
-  } catch (error) {
-    console.error('Failed to initialize model:', error)
-    modelStatus.value = 'not-loaded'
-    alert('Failed to load AI model. Please try again.')
+  if (selectedBackend.value !== 'local') {
+    return
   }
+
+  modelStatus.value = 'loading'
+
+  await llmService.initializeModel?.()
+  await checkModelStatus()
 }
 
 async function checkModelStatus() {
+  if (selectedBackend.value !== 'local') {
+    modelStatus.value = 'loaded' // Remote backends assumed ready after config
+    return
+  }
+
   if (await llmService.isModelReady()) {
     modelStatus.value = 'loaded'
   } else if (await llmService.isModelLoading()) {
@@ -311,8 +391,22 @@ async function checkModelStatus() {
   }
 }
 
+function applyBackendConfig() {
+  if (selectedBackend.value !== 'local') {
+    openAIStore.setApiKey(apiKey.value.trim())
+    openAIStore.setBaseURL(baseURL.value.trim())
+    openAIStore.setModel(model.value.trim())
+  }
+
+  exerciseGenerator.value = getExerciseGenerator(selectedBackend.value)
+
+  checkModelStatus()
+}
+
 function toggleAllGrammarsInSet(set: GrammarSet) {
-  if (!set.grammars) return
+  if (!set.grammars) {
+    return
+  }
 
   const areAllSelected = areAllGrammarsSelected(set)
 
@@ -350,7 +444,7 @@ async function startPractice() {
   isGenerating.value = true
 
   try {
-    const exercises = await localLLMExerciseGenerator.generateGrammarExercises(
+    const exercises = await exerciseGenerator.value.generateGrammarExercises(
       selectedGrammars.value,
       selectedDeck.value?.flashcards,
       exerciseCount.value,
@@ -378,6 +472,6 @@ function goBack() {
 
 onMounted(() => {
   loadData()
-  checkModelStatus()
+  applyBackendConfig()
 })
 </script>

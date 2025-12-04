@@ -1,3 +1,4 @@
+import * as z from 'zod'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
@@ -11,6 +12,17 @@ export interface GrammarExercise {
   grammar: string
   vocabulary?: string[]
 }
+
+export const grammarSchema = z.object({
+  id: z.string().uuid(),
+  type: z.enum(['fill-blank', 'multiple-choice', 'error-correction']),
+  question: z.string().max(500),
+  options: z.array(z.string()).optional(),
+  correctAnswer: z.string(),
+  explanation: z.string().max(500),
+  grammar: z.string().max(300),
+  vocabulary: z.array(z.string()).min(1).optional(),
+})
 
 export const useGrammarPracticeStore = defineStore('grammarPractice', () => {
   // State
