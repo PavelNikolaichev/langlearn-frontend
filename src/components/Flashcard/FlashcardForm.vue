@@ -13,7 +13,7 @@
           <UiTextarea v-model="form.notes" placeholder="Notes (optional)" :rows="3" />
         </div>
         <div class="flex justify-end">
-          <UiButton type="submit" variant="primary"> Add Flashcard </UiButton>
+          <UiButton type="submit" variant="default"> Add Flashcard </UiButton>
         </div>
       </form>
     </template>

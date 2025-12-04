@@ -73,11 +73,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import Card from '@/components/ui/shadcn/Card.vue'
-import CardContent from '@/components/ui/shadcn/CardContent.vue'
-import Input from '@/components/ui/shadcn/Input.vue'
-import Button from '@/components/ui/shadcn/Button.vue'
+import { useAuthStore } from '@/features/auth/stores/auth'
+import Card from '@/components/ui/Card.vue'
+import CardContent from '@/components/ui/CardContent.vue'
+import Input from '@/components/ui/Input.vue'
+import Button from '@/components/ui/Button.vue'
 
 defineOptions({
   name: 'LoginView',

@@ -41,7 +41,7 @@
 import { defineProps, defineEmits } from 'vue'
 import GrammarItem from '@/components/Grammar/GrammarItem.vue'
 import UiLoadingDots from '@/components/ui/LoadingDots.vue'
-import type { Grammar } from '@/services/grammarService'
+import type { Grammar } from '@/api'
 
 defineProps({
   grammars: {

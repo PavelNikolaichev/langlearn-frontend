@@ -118,7 +118,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/features/auth/stores/auth'
 import { useRouter } from 'vue-router'
 import { HomeIcon, LayersIcon, BookOpenIcon, LogOutIcon, MenuIcon, XIcon } from 'lucide-vue-next'
 
@@ -129,9 +129,8 @@ defineOptions({
 const auth = useAuthStore()
 const router = useRouter()
 const isSidebarOpen = ref(false)
-
-const username = computed(() => auth.user?.id || 'User')
-const userInitial = computed(() => (auth.user?.id?.[0] || 'U').toUpperCase())
+const username = computed(() => auth.getUserEmailStripped || 'User')
+const userInitial = computed(() => (auth.getUserEmail ? auth.getUserEmail[0] : 'U').toUpperCase())
 
 function toggleSidebar() {
   isSidebarOpen.value = !isSidebarOpen.value

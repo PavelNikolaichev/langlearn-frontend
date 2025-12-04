@@ -15,7 +15,7 @@
           />
         </div>
         <div class="flex justify-end">
-          <UiButton type="submit" variant="primary"> Add Grammar </UiButton>
+          <UiButton type="submit" variant="default"> Add Grammar </UiButton>
         </div>
       </form>
     </template>

@@ -281,8 +281,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchGrammarSets, type Grammar, type GrammarSet } from '@/services/grammarService'
-import { fetchDecks, type Deck } from '@/services/deckService'
+import { useGrammarSetStore } from '@/stores/grammarSet'
+import { useDeckStore } from '@/stores/deck'
+import type { Grammar, GrammarSet, Deck } from '@/api'
 import { LocalLLMService } from '@/services/llm/localLLMService'
 import { useGrammarPracticeStore } from '@/stores/grammar'
 import UiContainer from '@/components/ui/Container.vue'
@@ -297,6 +298,8 @@ import { useOpenAIStore } from '@/stores/openai'
 
 const router = useRouter()
 const grammarPracticeStore = useGrammarPracticeStore()
+const grammarSetStore = useGrammarSetStore()
+const deckStore = useDeckStore()
 
 const llmService = LocalLLMService.getInstance()
 const openAIStore = useOpenAIStore()
@@ -353,10 +356,10 @@ async function loadData() {
   loadingDecks.value = true
 
   try {
-    const [grammarData, deckData] = await Promise.all([fetchGrammarSets(), fetchDecks()])
+    await Promise.all([grammarSetStore.fetchGrammarSets(), deckStore.fetchDecks()])
 
-    grammarSets.value = grammarData
-    decks.value = deckData
+    grammarSets.value = grammarSetStore.grammarSets
+    decks.value = deckStore.decks
   } catch (error) {
     console.error('Failed to load data:', error)
   } finally {

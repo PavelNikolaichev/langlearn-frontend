@@ -63,7 +63,7 @@
 import { defineProps, defineEmits } from 'vue'
 import UiCard from '@/components/ui/Card.vue'
 import UiButton from '@/components/ui/Button.vue'
-import type { GrammarSet } from '@/services/grammarService'
+import type { GrammarSet } from '@/api'
 
 defineProps({
   grammarSet: {

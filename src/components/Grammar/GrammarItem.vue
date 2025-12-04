@@ -6,7 +6,7 @@
         <p class="text-sm text-gray-600">{{ grammar.description || 'No description' }}</p>
       </div>
       <div class="flex space-x-2">
-        <UiButton variant="danger" size="sm" @click="$emit('delete', grammar.id)">
+        <UiButton variant="destructive" size="sm" @click="$emit('delete', grammar.id)">
           Delete
         </UiButton>
       </div>
@@ -18,7 +18,7 @@
 import { defineProps, defineEmits } from 'vue'
 import UiCard from '@/components/ui/Card.vue'
 import UiButton from '@/components/ui/Button.vue'
-import type { Grammar } from '@/services/grammarService'
+import type { Grammar } from '@/api'
 
 defineProps({
   grammar: {

@@ -7,7 +7,7 @@
         <p v-if="flashcard.notes" class="text-xs text-gray-500 mt-1">{{ flashcard.notes }}</p>
       </div>
       <div class="flex space-x-2">
-        <UiButton variant="danger" size="sm" @click="$emit('delete', flashcard.id)">
+        <UiButton variant="destructive" size="sm" @click="$emit('delete', flashcard.id)">
           Delete
         </UiButton>
       </div>
@@ -19,20 +19,11 @@
 import { defineProps, defineEmits } from 'vue'
 import UiCard from '@/components/ui/Card.vue'
 import UiButton from '@/components/ui/Button.vue'
+import type { Flashcard } from '@/api'
 
-interface Flashcard {
-  id: string
-  front: string
-  back: string
-  notes?: string
-}
-
-defineProps({
-  flashcard: {
-    type: Object as () => Flashcard,
-    required: true,
-  },
-})
+defineProps<{
+  flashcard: Flashcard
+}>()
 
 defineEmits(['delete'])
 </script>

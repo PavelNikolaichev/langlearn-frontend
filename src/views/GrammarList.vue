@@ -21,15 +21,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import {
-  fetchGrammars,
-  createGrammar,
-  deleteGrammar,
-  fetchGrammarSets,
-  type Grammar,
-  type GrammarSet,
-} from '@/services/grammarService'
+import { ref, onMounted, computed } from 'vue'
+import { useGrammarSetStore } from '@/stores/grammarSet'
+import type { Grammar, GrammarSet } from '@/api'
 import { useRoute, useRouter } from 'vue-router'
 import GrammarSetHeader from '@/components/Grammar/GrammarSetHeader.vue'
 import GrammarList from '@/components/Grammar/GrammarList.vue'
@@ -40,28 +34,28 @@ const route = useRoute()
 const router = useRouter()
 const setId = route.params.setId as string
 
-const set = ref<GrammarSet | null>(null)
-const grammars = ref<Grammar[]>([])
-const loading = ref(false)
+const grammarSetStore = useGrammarSetStore()
+
+const set = computed(() => grammarSetStore.currentGrammarSet)
+const grammars = computed(() => {
+  if (grammarSetStore.currentGrammarSet && grammarSetStore.currentGrammarSet.id === setId) {
+    return grammarSetStore.currentGrammarSet.grammars || []
+  }
+  return []
+})
+const loading = computed(() => grammarSetStore.loading)
 
 async function load() {
-  loading.value = true
-
-  set.value = (await fetchGrammarSets()).find((s) => s.id === setId) || null
-  grammars.value = set.value?.grammars || (await fetchGrammars(setId)) || []
-
-  console.log('Loaded grammars:', grammars.value)
-  loading.value = false
+  await grammarSetStore.fetchGrammarSetById(setId)
+  await grammarSetStore.fetchGrammarsForSet(setId)
 }
 
 async function add(formData: { name: string; description: string }) {
-  await createGrammar(setId, formData)
-  load()
+  await grammarSetStore.createGrammar(setId, formData)
 }
 
 async function remove(id: string) {
-  await deleteGrammar(setId, id)
-  load()
+  await grammarSetStore.deleteGrammar(setId, id)
 }
 
 function goBack() {

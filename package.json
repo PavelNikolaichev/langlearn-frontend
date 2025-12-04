@@ -12,7 +12,8 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "generate-api": "node scripts/generate-api.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.7.0",
@@ -33,6 +34,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.25.2",
     "@playwright/test": "^1.53.1",
     "@tsconfig/node22": "^22.0.2",
     "@types/jsdom": "^21.1.7",
@@ -45,6 +47,7 @@
     "@vue/tsconfig": "^0.7.0",
     "@webgpu/types": "^0.1.64",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^17.2.3",
     "eslint": "^9.29.0",
     "eslint-plugin-playwright": "^2.2.0",
     "eslint-plugin-vue": "~10.2.0",

@@ -1,6 +1,6 @@
 import type { GrammarExercise } from '@/stores/grammar'
-import type { Flashcard } from '../flashcardService'
-import type { Grammar } from '../grammarService'
+import type { Flashcard } from '@/api'
+import type { Grammar } from '@/api'
 import { LocalLLMService } from '../llm/localLLMService'
 import type { ExerciseGeneratorInterface } from './exerciseGeneratorInterface'
 

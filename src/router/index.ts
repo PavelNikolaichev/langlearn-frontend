@@ -1,13 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import DeckList from '@/views/DeckList.vue'
-import Login from '@/views/Login.vue'
+import Login from '@/features/auth/views/Login.vue'
 import DeckDetail from '@/views/DeckDetail.vue'
 import DeckPractice from '@/views/DeckPractice.vue'
 import GrammarSetList from '@/views/GrammarSetList.vue'
 import GrammarList from '@/views/GrammarList.vue'
 import GrammarPracticeSetup from '@/views/GrammarPracticeSetup.vue'
 import GrammarPractice from '@/views/GrammarPractice.vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/features/auth/stores/auth'
 
 const routes = [
   { path: '/', redirect: '/dashboard' },

@@ -27,7 +27,7 @@
           </div>
 
           <Button class="w-full mt-4" asChild>
-            <router-link to="/decklist">View All Decks</router-link>
+            <router-link to="/decklist" class="w-full h-full">View All Decks</router-link>
           </Button>
         </CardContent>
       </Card>
@@ -55,7 +55,7 @@
           </div>
 
           <Button class="w-full mt-4" variant="outline" asChild>
-            <router-link to="/grammarsets">View All Grammar Sets</router-link>
+            <router-link to="/grammarsets" class="w-full h-full">View All Grammar Sets</router-link>
           </Button>
         </CardContent>
       </Card>
@@ -129,14 +129,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import Card from '@/components/ui/shadcn/Card.vue'
-import CardHeader from '@/components/ui/shadcn/CardHeader.vue'
-import CardTitle from '@/components/ui/shadcn/CardTitle.vue'
-import CardContent from '@/components/ui/shadcn/CardContent.vue'
-import Button from '@/components/ui/shadcn/Button.vue'
+import Card from '@/components/ui/Card.vue'
+import CardHeader from '@/components/ui/CardHeader.vue'
+import CardTitle from '@/components/ui/CardTitle.vue'
+import CardContent from '@/components/ui/CardContent.vue'
+import Button from '@/components/ui/Button.vue'
 import { LayersIcon, BookOpenIcon, PlusIcon, PlayIcon, CheckCircleIcon } from 'lucide-vue-next'
-import { fetchDecks } from '@/services/deckService'
-import { fetchGrammarSets } from '@/services/grammarService'
+import { useDeckStore } from '@/stores/deck'
+import { useGrammarSetStore } from '@/stores/grammarSet'
 
 defineOptions({
   name: 'AppDashboard',
@@ -146,20 +146,25 @@ const router = useRouter()
 
 import { onMounted } from 'vue'
 
-// Sample data - in a real app, you would fetch these from your API/store
 const totalDecks = ref(0)
 const totalCards = ref(0)
 const totalGrammarSets = ref(0)
 const totalGrammarRules = ref(0)
 
-onMounted(async () => {
-  const decks = await fetchDecks()
-  totalDecks.value = decks.length
-  totalCards.value = decks.reduce((acc, deck) => acc + (deck.flashcards?.length || 0), 0)
+const deckStore = useDeckStore()
+const grammarSetStore = useGrammarSetStore()
 
-  const grammarSets = await fetchGrammarSets()
-  totalGrammarSets.value = grammarSets.length
-  totalGrammarRules.value = grammarSets.reduce((acc, set) => acc + (set.grammars?.length || 0), 0)
+onMounted(async () => {
+  await deckStore.fetchDecks()
+  totalDecks.value = deckStore.decks.length
+  totalCards.value = deckStore.decks.reduce((acc, deck) => acc + (deck.flashcards?.length || 0), 0)
+
+  await grammarSetStore.fetchGrammarSets()
+  totalGrammarSets.value = grammarSetStore.grammarSets.length
+  totalGrammarRules.value = grammarSetStore.grammarSets.reduce(
+    (acc, set) => acc + (set.grammars?.length || 0),
+    0,
+  )
 })
 
 function createNewDeck() {
