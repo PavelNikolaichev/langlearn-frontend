@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import DeckList from '@/views/DeckList.vue'
 import Login from '@/features/auth/views/Login.vue'
+import Register from '@/features/auth/views/Register.vue'
 import DeckDetail from '@/views/DeckDetail.vue'
 import DeckPractice from '@/views/DeckPractice.vue'
 import GrammarSetList from '@/views/GrammarSetList.vue'
@@ -12,6 +13,7 @@ import { useAuthStore } from '@/features/auth/stores/auth'
 const routes = [
   { path: '/', redirect: '/dashboard' },
   { path: '/login', name: 'Login', component: Login },
+  { path: '/register', name: 'Register', component: Register },
   {
     path: '/dashboard',
     name: 'Dashboard',

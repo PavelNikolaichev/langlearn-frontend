@@ -13,13 +13,13 @@
         <CardContent class="pt-6">
           <form @submit.prevent="handleLogin" class="space-y-6">
             <div class="space-y-2">
-              <label for="username" class="text-sm font-medium">Username</label>
+              <label for="username" class="text-sm font-medium">Email</label>
               <Input
-                id="username"
-                v-model="username"
-                type="text"
+                id="email"
+                v-model="email"
+                type="email"
                 required
-                placeholder="Enter your username"
+                placeholder="Enter your email"
               />
             </div>
 
@@ -38,20 +38,19 @@
               <div class="flex items-center space-x-2">
                 <input
                   id="remember-me"
+                  v-model="rememberMe"
                   type="checkbox"
                   class="h-4 w-4 rounded border-input bg-background"
                 />
                 <label for="remember-me" class="text-sm"> Remember me </label>
               </div>
-
-              <div class="text-sm">
+              <!-- We don't have a "Forgot your password?" logic, since there is no SMTP -->
+              <!-- <div class="text-sm">
                 <a href="#" class="text-primary hover:underline"> Forgot your password? </a>
-              </div>
+              </div> -->
             </div>
 
-            <Button type="submit" :disabled="!username || !password" class="w-full">
-              Sign in
-            </Button>
+            <Button type="submit" :disabled="!email || !password" class="w-full"> Sign in </Button>
 
             <div v-if="error" class="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
               {{ error }}
@@ -63,7 +62,9 @@
       <div class="text-center text-sm">
         <p class="text-muted-foreground">
           Don't have an account?
-          <a href="#" class="text-primary hover:underline"> Sign up here </a>
+          <router-link to="/register" class="text-primary hover:underline">
+            Sign up here
+          </router-link>
         </p>
       </div>
     </div>
@@ -86,16 +87,17 @@ defineOptions({
 const router = useRouter()
 const auth = useAuthStore()
 
-const username = ref('')
+const email = ref('')
 const password = ref('')
 const error = ref('')
+const rememberMe = ref<boolean>(!!auth.remember)
 
 async function handleLogin() {
-  if (!username.value || !password.value) return
+  if (!email.value || !password.value) return
 
   error.value = ''
   try {
-    await auth.login(username.value, password.value)
+    await auth.login(email.value, password.value, rememberMe.value)
     router.push('/dashboard')
   } catch (err) {
     console.error(err)

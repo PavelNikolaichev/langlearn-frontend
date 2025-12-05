@@ -4,11 +4,17 @@ import { decodeJwt, isJwtExpired, type JwtPayload } from '@/utils/jwt'
 
 export const useAuthStore = defineStore('auth', {
   state: () => {
-    const token = localStorage.getItem('token') || (null as null | string)
+    // Read token from localStorage (persistent) first, then from sessionStorage (non-persistent)
+    const tokenFromLocal = localStorage.getItem('token')
+    const tokenFromSession = sessionStorage.getItem('token')
+    const token = tokenFromLocal || tokenFromSession || (null as null | string)
     const jwtPayload: JwtPayload | null = token ? decodeJwt(token) : null
+    const remember = !!tokenFromLocal
     return {
       token,
       jwtPayload,
+      // whether the token is stored persistently in localStorage
+      remember,
     }
   },
 
@@ -29,7 +35,7 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    async login(email: string, password: string) {
+    async login(email: string, password: string, remember = false) {
       const response = await apiClient.authLoginPost({ loginRequestDto: { email, password } })
       const token = response.data.token
 
@@ -44,13 +50,22 @@ export const useAuthStore = defineStore('auth', {
 
       this.token = token
       this.jwtPayload = jwtPayload
-      localStorage.setItem('token', token)
+      this.remember = !!remember
+      if (this.remember) {
+        localStorage.setItem('token', token)
+        sessionStorage.removeItem('token')
+      } else {
+        sessionStorage.setItem('token', token)
+        localStorage.removeItem('token')
+      }
     },
 
     logout() {
       this.token = null
       this.jwtPayload = null
       localStorage.removeItem('token')
+      sessionStorage.removeItem('token')
+      this.remember = false
     },
 
     async refreshToken() {
@@ -75,7 +90,12 @@ export const useAuthStore = defineStore('auth', {
 
         this.token = newToken
         this.jwtPayload = jwtPayload
-        localStorage.setItem('token', newToken)
+        // keep same storage that we used for the current token
+        if (this.remember) {
+          localStorage.setItem('token', newToken)
+        } else {
+          sessionStorage.setItem('token', newToken)
+        }
       } catch (error) {
         console.error('Failed to refresh token:', error)
         this.logout()
@@ -92,6 +112,8 @@ export const useAuthStore = defineStore('auth', {
         } else if (!this.jwtPayload) {
           console.log('Decoding token to initialize jwtPayload')
           this.jwtPayload = decodeJwt(this.token)
+          // ensure remember flag is set based on storage
+          this.remember = !!localStorage.getItem('token')
         }
       }
     },
