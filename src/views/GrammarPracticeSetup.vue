@@ -176,7 +176,7 @@
                     <div>
                       <h4 class="font-bold text-gray-900">{{ selectedDeck.name }}</h4>
                       <p class="text-sm text-emerald-700 font-medium">
-                        Using {{ selectedDeck.flashcards.length }} vocabulary words
+                        Using {{ selectedDeck?.flashcards?.length ?? 0 }} vocabulary words
                       </p>
                     </div>
                   </div>
@@ -235,7 +235,7 @@
                             d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                           ></path>
                         </svg>
-                        {{ deck.flashcards.length }} cards
+                        {{ deck.flashcards?.length ?? 0 }} cards
                       </div>
                     </div>
                   </div>

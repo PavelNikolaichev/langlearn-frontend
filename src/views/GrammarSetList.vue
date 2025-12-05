@@ -57,7 +57,7 @@
         v-for="set in sets"
         :key="set.id"
         class="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-        @click="goToGrammars(set.id)"
+        @click="goToGrammars(set.id!)"
       >
         <div class="h-2 bg-emerald-600"></div>
         <CardHeader>
@@ -200,7 +200,8 @@ async function load() {
   }
 }
 
-function goToGrammars(id: string) {
+function goToGrammars(id: string | undefined) {
+  if (!id) return
   router.push({ name: 'GrammarList', params: { setId: id } })
 }
 

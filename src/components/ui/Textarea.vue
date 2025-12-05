@@ -20,7 +20,7 @@ defineOptions({
 })
 
 interface Props {
-  modelValue: string | undefined
+  modelValue: string | null | undefined
   class?: string
 }
 
