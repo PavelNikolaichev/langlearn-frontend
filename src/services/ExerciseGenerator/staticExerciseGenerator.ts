@@ -42,32 +42,41 @@ export class StaticExerciseGenerator implements ExerciseGeneratorInterface {
     type: GrammarExercise['type'],
     index: number,
   ): GrammarExercise {
-    const fallbackExercises = {
+    // More realistic static data templates
+    const vocabWord = vocabulary.length > 0 ? vocabulary[index % vocabulary.length] : 'apple'
+
+    const templates = {
       'fill-blank': {
-        question: `Complete the sentence using ${grammar.name}: The student _____ hard every day.`,
-        correctAnswer: 'studies',
-        explanation: `This demonstrates ${grammar.name} usage in present tense.`,
+        question: `Complete the sentence focusing on ${grammar.name}: "I _____ (${vocabWord}) yesterday."`,
+        correctAnswer: `ate ${vocabWord}`,
+        explanation: `In this context, we use the past tense form for ${grammar.name}.`,
+        options: [],
       },
       'multiple-choice': {
-        question: `Which sentence correctly uses ${grammar.name}?`,
-        options: ['Option A', 'Option B', 'Option C', 'Option D'],
-        correctAnswer: 'Option A',
-        explanation: `Option A correctly demonstrates ${grammar.name}.`,
+        question: `Choose the correct form for ${grammar.name} using the word "${vocabWord}":`,
+        options: [`I ${vocabWord}s`, `I ${vocabWord}ing`, `I ${vocabWord}ed`, `I ${vocabWord}`],
+        correctAnswer: `I ${vocabWord}ed`,
+        explanation: `The correct conjugation for ${grammar.name} here is the past tense.`,
       },
       'error-correction': {
-        question: `Find and correct the error in: "I are student."`,
-        correctAnswer: 'I am a student.',
-        explanation: `The error involves ${grammar.name} - subject-verb agreement.`,
+        question: `Correct the error in this sentence regarding ${grammar.name}: "She ${vocabWord}ed to the store."`,
+        correctAnswer: `She went to the store.`,
+        explanation: `The verb "${vocabWord}" might be irregular, or the structure requires a different form for ${grammar.name}.`,
+        options: [],
       },
     }
 
-    const fallback = fallbackExercises[type]
+    const template = templates[type]
+
     return {
-      id: `fallback-${index}`,
+      id: `static-${index}-${Date.now()}`,
       type,
       grammar: grammar.name,
-      vocabulary: vocabulary.slice(0, 2),
-      ...fallback,
+      vocabulary: [vocabWord],
+      question: template.question,
+      correctAnswer: template.correctAnswer,
+      explanation: template.explanation,
+      options: template.options,
     }
   }
 }

@@ -328,12 +328,26 @@
                 <div v-if="isCloudBackend" class="space-y-5">
                   <div class="space-y-1.5">
                     <label class="block text-xs text-gray-500 font-bold uppercase tracking-wide"
-                      >API Key</label
+                      >API Key
+                      <span class="font-normal text-gray-400 lowercase"
+                        >(optional for some endpoints)</span
+                      ></label
                     >
                     <input
                       type="password"
                       v-model="apiKey"
                       placeholder="sk-..."
+                      class="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-300"
+                    />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="block text-xs text-gray-500 font-bold uppercase tracking-wide"
+                      >Base URL</label
+                    >
+                    <input
+                      type="text"
+                      v-model="baseURL"
+                      placeholder="https://openrouter.ai/api/v1"
                       class="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-300"
                     />
                   </div>
@@ -453,7 +467,29 @@
             </UiButton>
 
             <div
-              v-if="!canStartPractice"
+              v-if="errorMessage"
+              class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"
+            >
+              <p class="font-bold flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 mr-1"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                Error
+              </p>
+              <p class="mt-1">{{ errorMessage }}</p>
+            </div>
+
+            <div
+              v-if="!canStartPractice && !errorMessage"
               class="text-center mt-3 bg-red-50 text-red-600 px-3 py-2 rounded-lg border border-red-100 text-xs font-medium flex items-center justify-center"
             >
               <svg
@@ -493,7 +529,7 @@ import {
   getExerciseGenerator,
   type LLMBackend,
 } from '@/services/ExerciseGenerator/generatorFactory'
-import { useOpenAIStore } from '@/stores/openai'
+import { useLLMConfigStore, type LLMProvider } from '@/stores/llmConfig'
 
 const router = useRouter()
 const grammarPracticeStore = useGrammarPracticeStore()
@@ -501,10 +537,14 @@ const grammarSetStore = useGrammarSetStore()
 const deckStore = useDeckStore()
 
 const llmService = LocalLLMService.getInstance()
-const openAIStore = useOpenAIStore()
+const llmConfigStore = useLLMConfigStore()
 
 // Backend selection state
-const selectedBackend = ref<LLMBackend>('openrouter')
+const selectedBackend = computed<LLMProvider>({
+  get: () => llmConfigStore.activeProvider,
+  set: (val) => llmConfigStore.setActiveProvider(val),
+})
+
 const isLocal = computed(() => selectedBackend.value === 'local')
 const isStatic = computed(() => selectedBackend.value === 'static')
 const isCloudBackend = computed(
@@ -513,9 +553,9 @@ const isCloudBackend = computed(
 const exerciseGenerator = ref<ExerciseGeneratorInterface>(getExerciseGenerator('openrouter'))
 
 // Config inputs
-const apiKey = ref(openAIStore.getApiKey || '')
-const baseURL = ref(openAIStore.getBaseURL || 'https://openrouter.ai/api/v1')
-const model = ref(openAIStore.getModel || 'anthropic/claude-3.5-sonnet')
+const apiKey = ref('')
+const baseURL = ref('')
+const model = ref('')
 
 // State
 const grammarSets = ref<GrammarSet[]>([])
@@ -527,6 +567,7 @@ const loading = ref(false)
 const loadingDecks = ref(false)
 const isGenerating = ref(false)
 const modelStatus = ref<'not-loaded' | 'loading' | 'loaded'>('not-loaded')
+const errorMessage = ref<string | null>(null)
 
 // Computed Properties for UI Logic
 const canStartPractice = computed(() => {
@@ -540,14 +581,9 @@ const canStartPractice = computed(() => {
   if (isStatic.value) {
     return selectedGrammars.value.length > 0 && !isGenerating.value
   }
-  // Cloud backends require API key and model
+  // Cloud backends require model. API Key is optional for custom endpoints but usually required.
   if (isCloudBackend.value) {
-    return (
-      selectedGrammars.value.length > 0 &&
-      apiKey.value.trim().length > 10 &&
-      model.value.trim().length > 0 &&
-      !isGenerating.value
-    )
+    return selectedGrammars.value.length > 0 && model.value.trim().length > 0 && !isGenerating.value
   }
   // Default fallback
   return selectedGrammars.value.length > 0 && !isGenerating.value
@@ -577,8 +613,8 @@ const modelStatusColor = computed(() => {
 
 const startPracticeDisabledMessage = computed(() => {
   if (isLocal.value && modelStatus.value !== 'loaded') return 'AI Model not ready'
-  if (isCloudBackend.value && (apiKey.value.trim().length <= 10 || model.value.trim().length === 0))
-    return 'Enter a valid API key and model to continue'
+  if (isCloudBackend.value && model.value.trim().length === 0)
+    return 'Enter a valid model to continue'
   return 'Select at least one grammar rule and set up AI configuration'
 })
 
@@ -597,6 +633,7 @@ async function loadData() {
     decks.value = deckStore.decks
   } catch (error) {
     console.error('Failed to load data:', error)
+    errorMessage.value = 'Failed to load grammar sets or decks.'
   } finally {
     loading.value = false
     loadingDecks.value = false
@@ -606,8 +643,14 @@ async function loadData() {
 async function initializeModel() {
   if (!isLocal.value) return
   modelStatus.value = 'loading'
-  await llmService.initializeModel?.()
-  await checkModelStatus()
+  errorMessage.value = null
+  try {
+    await llmService.initializeModel?.()
+    await checkModelStatus()
+  } catch (e: any) {
+    errorMessage.value = `Failed to load local model: ${e.message}`
+    modelStatus.value = 'not-loaded'
+  }
 }
 
 async function checkModelStatus() {
@@ -631,14 +674,23 @@ async function checkModelStatus() {
   }
 }
 
+function syncConfigFromStore() {
+  const config = llmConfigStore.currentConfig
+  apiKey.value = config.apiKey || ''
+  baseURL.value = config.baseURL
+  model.value = config.model
+}
+
 function applyBackendConfig() {
   // For cloud backends update store config. Skip for local and static.
   if (isCloudBackend.value) {
-    openAIStore.setApiKey(apiKey.value.trim())
-    openAIStore.setBaseURL(baseURL.value.trim())
-    openAIStore.setModel(model.value.trim())
+    llmConfigStore.updateConfig(selectedBackend.value, {
+      apiKey: apiKey.value.trim(),
+      baseURL: baseURL.value.trim(),
+      model: model.value.trim(),
+    })
   }
-  exerciseGenerator.value = getExerciseGenerator(selectedBackend.value)
+  exerciseGenerator.value = getExerciseGenerator(selectedBackend.value as LLMBackend)
   checkModelStatus()
 }
 
@@ -678,6 +730,10 @@ async function startPractice() {
   if (!canStartPractice.value) return
 
   isGenerating.value = true
+  errorMessage.value = null
+
+  // Ensure config is saved before starting
+  applyBackendConfig()
 
   try {
     const exercises = await exerciseGenerator.value.generateGrammarExercises(
@@ -686,15 +742,20 @@ async function startPractice() {
       exerciseCount.value,
     )
 
+    if (!exercises || exercises.length === 0) {
+      throw new Error('No exercises were generated. Please try again.')
+    }
+
     grammarPracticeStore.setExercises(exercises)
     grammarPracticeStore.setGrammarNames(selectedGrammars.value.map((g) => g.name).join(', '))
     grammarPracticeStore.setDeckName(selectedDeck.value?.name || '')
     grammarPracticeStore.resetSession()
 
     router.push({ name: 'GrammarPractice' })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to generate exercises:', error)
-    alert('Failed to generate exercises. Please check your API key and connection.')
+    errorMessage.value =
+      error.message || 'Failed to generate exercises. Please check your configuration.'
   } finally {
     isGenerating.value = false
   }
@@ -706,11 +767,13 @@ function goBack() {
 
 onMounted(() => {
   loadData()
+  syncConfigFromStore()
   applyBackendConfig()
 })
 
 // Apply the backend configuration immediately when backend selection changes
 watch(selectedBackend, () => {
+  syncConfigFromStore()
   applyBackendConfig()
 })
 </script>

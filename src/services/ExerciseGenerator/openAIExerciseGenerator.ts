@@ -44,44 +44,52 @@ export class OpenAIExerciseGenerator implements ExerciseGeneratorInterface {
       json_schema: {
         name: 'grammar_exercises',
         schema: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              type: {
-                type: 'string',
-                enum: ['fill-blank', 'multiple-choice', 'error-correction'],
-                description: 'The type of exercise.',
-              },
-              question: {
-                type: 'string',
-                description: 'The exercise question or prompt.',
-              },
-              options: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Options for multiple-choice exercises.',
-              },
-              correctAnswer: {
-                type: 'string',
-                description: 'The correct answer to the exercise.',
-              },
-              explanation: {
-                type: 'string',
-                description: 'A brief explanation of the grammar point being tested.',
-              },
-              grammar: {
-                type: 'string',
-                description: 'The grammar topic being tested.',
-              },
-              vocabulary: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Vocabulary words used in the exercise.',
+          type: 'object',
+          properties: {
+            exercises: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  type: {
+                    type: 'string',
+                    enum: ['fill-blank', 'multiple-choice', 'error-correction'],
+                    description: 'The type of exercise.',
+                  },
+                  question: {
+                    type: 'string',
+                    description: 'The exercise question or prompt.',
+                  },
+                  options: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Options for multiple-choice exercises.',
+                  },
+                  correctAnswer: {
+                    type: 'string',
+                    description: 'The correct answer to the exercise.',
+                  },
+                  explanation: {
+                    type: 'string',
+                    description: 'A brief explanation of the grammar point being tested.',
+                  },
+                  grammar: {
+                    type: 'string',
+                    description: 'The grammar topic being tested.',
+                  },
+                  vocabulary: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Vocabulary words used in the exercise.',
+                  },
+                },
+                required: ['type', 'question', 'correctAnswer', 'explanation', 'grammar'],
+                additionalProperties: false,
               },
             },
-            required: ['type', 'question', 'correctAnswer', 'explanation', 'grammar'],
           },
+          required: ['exercises'],
+          additionalProperties: false,
         },
         strict: true,
         description: 'A schema for generated grammar exercises',
@@ -94,25 +102,82 @@ export class OpenAIExerciseGenerator implements ExerciseGeneratorInterface {
       outputSchema,
     )
 
-    return await this.parseResponse(response, count)
+    return await this.parseResponse(response, count, grammars)
   }
 
-  private async parseResponse(response: string, count: number): Promise<GrammarExercise[]> {
+  private async parseResponse(
+    response: string,
+    count: number,
+    grammars: Grammar[],
+  ): Promise<GrammarExercise[]> {
     // Additional check for code blocks, if LLM outputs it wrapped in triple backticks. Note, might break if LLM outputs everything as oneliner
     const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/)
     if (codeBlockMatch) {
       response = codeBlockMatch[1].trim()
     }
 
-    const exercises: GrammarExercise[] = JSON.parse(response)
+    let parsed: any
+    try {
+      parsed = JSON.parse(response)
+    } catch (e) {
+      console.error('Failed to parse JSON response:', e)
+      return []
+    }
 
-    console.log('Generated exercises:', exercises)
+    // Handle both array root and object root with 'exercises' property
+    let exercisesRaw: any[] = []
+    if (Array.isArray(parsed)) {
+      exercisesRaw = parsed
+    } else if (parsed.exercises && Array.isArray(parsed.exercises)) {
+      exercisesRaw = parsed.exercises
+    } else {
+      console.warn('Unexpected JSON structure:', parsed)
+      return []
+    }
 
-    const validationResults = exercises.map((exercise) =>
-      grammarSchema.safeParse({ ...exercise, id: crypto.randomUUID() }),
+    console.log('Generated exercises (raw):', exercisesRaw)
+
+    // Normalize exercises to match schema
+    const normalizedExercises = exercisesRaw.map((ex) => {
+      // Map 'prompt' to 'question' if needed
+      let question = ex.question
+      if (!question && ex.prompt) {
+        question = ex.prompt
+      }
+
+      // Map 'fill-in-the-blank' to 'fill-blank'
+      let type = ex.type
+      if (type === 'fill-in-the-blank') {
+        type = 'fill-blank'
+      }
+
+      // Ensure grammar field exists
+      let grammar = ex.grammar
+      if (!grammar) {
+        // Try to find a matching grammar from the input list based on the question or just pick the first one
+        grammar = grammars.length > 0 ? grammars[0].name : 'General Grammar'
+      }
+
+      return {
+        ...ex,
+        id: crypto.randomUUID(),
+        question,
+        type,
+        grammar,
+      }
+    })
+
+    const validationResults = normalizedExercises.map((exercise) =>
+      grammarSchema.safeParse(exercise),
     )
+
     const validExercises = validationResults
-      .filter((result) => result.success)
+      .filter((result) => {
+        if (!result.success) {
+          console.warn('Validation failed for exercise:', result.error)
+        }
+        return result.success
+      })
       .map((result) => result.data)
 
     console.log('Valid exercises:', validExercises)
@@ -122,17 +187,41 @@ export class OpenAIExerciseGenerator implements ExerciseGeneratorInterface {
 
   private async getSystemPrompt(): Promise<string> {
     return `
-    You are a professional language teacher that helps students learn and practice grammar.
-    Your task is to create engaging and effective grammar exercises based on the provided topics and vocabulary.
-    The requirements are to ensure that the exercises are suitable for the students' proficiency levels and to provide clear instructions and examples.
+You are an expert language teacher and linguist specializing in creating high-quality, context-aware grammar exercises.
+Your goal is to generate exercises that help students practice specific grammar rules using vocabulary they are currently learning.
 
-    ## Input format:
-    You will get a list of grammar topics and optional vocabulary words to use in the exercises in the following format:
-     - For grammars -\`<grammar_name> - <grammar_description>\`
-     - For vocabulary -\`<vocabulary_word> - <vocabulary_definition> - <vocabulary_examples or notes (if any)>\`
+## Guidelines:
+1. **Target Language**: All exercises (questions, sentences) must be in the target language (the language of the 'Front' of the flashcards).
+2. **Contextual Learning**: Use the provided vocabulary words to construct the sentences. Do not introduce complex unknown vocabulary that distracts from the grammar point.
+3. **Grammar Focus**: Each exercise must specifically target one of the provided grammar rules.
+4. **Variety**: Generate a mix of exercise types (Fill-in-the-blank, Multiple Choice, Error Correction).
+5. **Explanations**: Provide clear, concise explanations for the correct answer in the learner's native language (or English if not specified).
+6. **Difficulty**: The difficulty should be appropriate for a learner who knows the provided vocabulary but is practicing the grammar.
 
-    ## Output Format
-    You must output only json adhering to the schema provided
+## Output Format:
+You must output a valid JSON object with a single key "exercises" containing an array of exercise objects.
+Each exercise object must have the following fields:
+- "type": One of "fill-blank", "multiple-choice", "error-correction".
+- "question": The exercise question or sentence (use "question", NOT "prompt").
+- "correctAnswer": The correct answer string.
+- "explanation": Explanation of why the answer is correct.
+- "grammar": The name of the grammar rule being tested.
+- "options": (Array of strings) Required for "multiple-choice", optional otherwise.
+- "vocabulary": (Array of strings) List of vocabulary words used.
+
+Example:
+{
+  "exercises": [
+    {
+      "type": "fill-blank",
+      "question": "I _____ (to go) to the store.",
+      "correctAnswer": "went",
+      "explanation": "Past tense of 'go'.",
+      "grammar": "Past Simple",
+      "vocabulary": ["store"]
+    }
+  ]
+}
     `
   }
 
@@ -141,15 +230,34 @@ export class OpenAIExerciseGenerator implements ExerciseGeneratorInterface {
     vocabulary: Flashcard[] | undefined,
     count: number,
   ) {
-    return `
-    Generate ${count} grammar exercises for the following grammar topics:
-    \`\`\`
-    ${grammars.map((g) => `${g.name} - ${g.description}`).join('\n')}. ${
-      vocabulary
-        ? `Incorporate the following vocabulary: ${vocabulary.map((v) => `${v.front} - ${v.back}${v.notes ? ` - ${v.notes}` : ''}`).join(', ')}.`
-        : ''
+    const grammarList = grammars.map((g) => `- ${g.name}: ${g.description}`).join('\n')
+
+    let vocabList = 'No specific vocabulary provided. Use common words suitable for A2/B1 level.'
+    if (vocabulary && vocabulary.length > 0) {
+      vocabList = vocabulary
+        .map(
+          (v) =>
+            `- Front (Target): "${v.front}", Back (Native): "${v.back}"${v.notes ? `, Notes: "${v.notes}"` : ''}`,
+        )
+        .join('\n')
     }
-    \`\`\`
+
+    return `
+Please generate ${count} grammar practice exercises.
+
+### Grammar Rules to Practice:
+${grammarList}
+
+### Vocabulary to Use (Context):
+${vocabList}
+
+### Instructions:
+- Create exactly ${count} exercises.
+- Ensure the exercises test the understanding and application of the grammar rules listed above.
+- Use the vocabulary words provided in the sentences.
+- For "fill-blank" exercises, the blank should correspond to the grammar structure being practiced (e.g., verb conjugation, particle, preposition).
+- For "error-correction", provide a sentence with a common mistake related to the grammar rule.
+- For "multiple-choice", ensure distractors are plausible but clearly incorrect based on the grammar rule.
     `
   }
 }
