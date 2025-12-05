@@ -1,8 +1,20 @@
 import axios from 'axios'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/features/auth/stores/auth'
+import { LangLearnBackendApi } from '@/api'
+
+// Allow runtime override (e.g. injected at container startup via env file / script)
+declare global {
+  interface Window {
+    __RUNTIME__?: Record<string, any>
+  }
+}
+
+const runtimeApiBase = (typeof window !== 'undefined' && window.__RUNTIME__?.VITE_API_BASE_URL) || ''
+const buildApiBase = import.meta.env.VITE_API_BASE_URL || ''
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '',
+  // Prefer a runtime override, then build-time Vite variable, then empty string
+  baseURL: runtimeApiBase || buildApiBase || '',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -20,5 +32,7 @@ api.interceptors.request.use((config) => {
 
   return config
 })
+
+export const apiClient = new LangLearnBackendApi(undefined, '', api)
 
 export default api

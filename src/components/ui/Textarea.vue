@@ -1,49 +1,30 @@
 <template>
   <textarea
     :value="modelValue"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    :readonly="readonly"
-    :rows="rows"
-    @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement)?.value || '')"
-    class="border rounded-md p-2 w-full resize-none"
-    :class="textareaClasses"
-  ></textarea>
+    @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+    :class="
+      cn(
+        'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        props.class,
+      )
+    "
+    v-bind="$attrs"
+  />
 </template>
 
 <script setup lang="ts">
-defineOptions({ name: 'UiTextarea' })
-import { defineProps, defineEmits, computed } from 'vue'
+import { cn } from '@/lib/utils'
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    default: '',
-  },
-  placeholder: {
-    type: String,
-    default: 'Enter text...',
-  },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
-  readonly: {
-    type: Boolean,
-    default: false,
-  },
-  rows: {
-    type: Number,
-    default: 3,
-  },
+defineOptions({
+  name: 'ShadcnTextarea',
 })
 
-defineEmits(['update:modelValue'])
+interface Props {
+  modelValue: string | null | undefined
+  class?: string
+}
 
-const textareaClasses = computed(() => [
-  'border rounded-md p-2',
-  {
-    'opacity-50 cursor-not-allowed': props.disabled,
-  },
-])
+const props = defineProps<Props>()
+
+defineEmits(['update:modelValue'])
 </script>

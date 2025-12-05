@@ -41,24 +41,12 @@
 import { defineProps, defineEmits } from 'vue'
 import FlashcardItem from '@/components/Flashcard/FlashcardItem.vue'
 import UiLoadingDots from '@/components/ui/LoadingDots.vue'
+import type { Flashcard } from '@/api'
 
-interface Flashcard {
-  id: string
-  front: string
-  back: string
-  notes?: string
-}
-
-defineProps({
-  flashcards: {
-    type: Array as () => Flashcard[],
-    default: () => [],
-  },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
-})
+defineProps<{
+  flashcards: Flashcard[]
+  loading: boolean
+}>()
 
 defineEmits(['delete'])
 </script>

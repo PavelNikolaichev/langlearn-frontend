@@ -21,14 +21,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import {
-  fetchFlashcards,
-  createFlashcard,
-  deleteFlashcard,
-  type Flashcard,
-} from '@/services/flashcardService'
-import { fetchDeckById, type Deck } from '@/services/deckService'
+import { onMounted, computed } from 'vue'
+import { useDeckStore } from '@/stores/deck'
+import { useFlashcardStore } from '@/stores/flashcard'
 import { useRoute, useRouter } from 'vue-router'
 import DeckHeader from '@/components/Deck/DeckHeader.vue'
 import FlashcardList from '@/components/Flashcard/FlashcardList.vue'
@@ -39,25 +34,24 @@ const route = useRoute()
 const router = useRouter()
 const deckId = route.params.id as string
 
-const deck = ref<Deck | null>(null)
-const flashcards = ref<Flashcard[]>([])
-const loading = ref(false)
+const deckStore = useDeckStore()
+const flashcardStore = useFlashcardStore()
+
+const deck = computed(() => deckStore.currentDeck)
+const flashcards = computed(() => flashcardStore.flashcards)
+const loading = computed(() => deckStore.loading || flashcardStore.loading)
 
 async function load() {
-  loading.value = true
-  deck.value = await fetchDeckById(deckId)
-  flashcards.value = await fetchFlashcards(deckId)
-  loading.value = false
+  await deckStore.fetchDeckById(deckId)
+  await flashcardStore.fetchFlashcards(deckId)
 }
 
 async function add(formData: { front: string; back: string; notes: string }) {
-  await createFlashcard(deckId, formData)
-  load()
+  await flashcardStore.createFlashcard(deckId, formData)
 }
 
 async function remove(id: string) {
-  await deleteFlashcard(deckId, id)
-  load()
+  await flashcardStore.deleteFlashcard(deckId, id)
 }
 
 function goBack() {

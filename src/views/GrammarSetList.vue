@@ -57,7 +57,7 @@
         v-for="set in sets"
         :key="set.id"
         class="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-        @click="goToGrammars(set.id)"
+        @click="goToGrammars(set.id!)"
       >
         <div class="h-2 bg-emerald-600"></div>
         <CardHeader>
@@ -93,7 +93,7 @@
 
     <!-- Create New Grammar Set Modal -->
     <Modal :open="showNew" @close="showNew = false">
-      <Card class="w-full max-w-lg">
+      <Card class="w-full max-w-lg" :borderless="true">
         <CardHeader>
           <CardTitle>Create New Grammar Set</CardTitle>
         </CardHeader>
@@ -130,7 +130,7 @@
 
   <!-- Delete Confirmation Modal -->
   <Modal :open="showDeleteModal" @close="cancelDelete">
-    <Card class="w-full max-w-lg">
+    <Card class="w-full max-w-lg" :borderless="true">
       <CardHeader>
         <CardTitle>Delete Grammar Set</CardTitle>
       </CardHeader>
@@ -148,50 +148,43 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import {
-  fetchGrammarSets,
-  createGrammarSet,
-  deleteGrammarSet,
-  fetchGrammars,
-} from '@/services/grammarService'
+import { useGrammarSetStore } from '@/stores/grammarSet'
+import type { GrammarSet } from '@/api'
 import { useRouter } from 'vue-router'
-import Card from '@/components/ui/shadcn/Card.vue'
-import CardHeader from '@/components/ui/shadcn/CardHeader.vue'
-import CardTitle from '@/components/ui/shadcn/CardTitle.vue'
-import CardContent from '@/components/ui/shadcn/CardContent.vue'
-import CardFooter from '@/components/ui/shadcn/CardFooter.vue'
-import Button from '@/components/ui/shadcn/Button.vue'
-import Input from '@/components/ui/shadcn/Input.vue'
-import Textarea from '@/components/ui/shadcn/Textarea.vue'
-import Modal from '@/components/ui/shadcn/Modal.vue'
+import Card from '@/components/ui/Card.vue'
+import CardHeader from '@/components/ui/CardHeader.vue'
+import CardTitle from '@/components/ui/CardTitle.vue'
+import CardContent from '@/components/ui/CardContent.vue'
+import CardFooter from '@/components/ui/CardFooter.vue'
+import Button from '@/components/ui/Button.vue'
+import Input from '@/components/ui/Input.vue'
+import Textarea from '@/components/ui/Textarea.vue'
+import Modal from '@/components/ui/Modal.vue'
 import LoadingDots from '@/components/ui/LoadingDots.vue'
 import { PlusIcon, BookOpenIcon, TrashIcon } from 'lucide-vue-next'
 
-interface GrammarSet {
-  id: string
-  name: string
-  description?: string
+interface EnhancedGrammarSet extends GrammarSet {
+  grammarCount: number
 }
 
-// include grammarCount for each set
-const sets = ref<(GrammarSet & { grammarCount: number })[]>([])
+const grammarSetStore = useGrammarSetStore()
+const sets = ref<EnhancedGrammarSet[]>([])
 const loading = ref(false)
 const showNew = ref(false)
 const showDeleteModal = ref(false)
 const setToDelete = ref<GrammarSet | null>(null)
-const newSet = ref<Partial<GrammarSet>>({ name: '', description: '' as string })
+const newSet = ref<Partial<GrammarSet>>({ name: '', description: '' })
 const router = useRouter()
 
 async function load() {
   loading.value = true
   try {
-    // fetch base sets and count grammars in each
-    const base = await fetchGrammarSets()
+    await grammarSetStore.fetchGrammarSets()
     const withCount = await Promise.all(
-      base.map(async (set) => {
+      grammarSetStore.grammarSets.map(async (set) => {
         let count = 0
         try {
-          const items = set.grammars || (await fetchGrammars(set.id))
+          const items = set.grammars || (await grammarSetStore.fetchGrammarsForSet(set.id!))
           count = items.length
         } catch {
           count = 0
@@ -202,17 +195,21 @@ async function load() {
     sets.value = withCount
   } catch (error) {
     console.error('Failed to fetch grammar sets:', error)
-    sets.value = []
   } finally {
     loading.value = false
   }
+}
+
+function goToGrammars(id: string | undefined) {
+  if (!id) return
+  router.push({ name: 'GrammarList', params: { setId: id } })
 }
 
 async function create() {
   if (!newSet.value.name) return
 
   try {
-    await createGrammarSet(newSet.value)
+    await grammarSetStore.createGrammarSet(newSet.value)
     newSet.value = { name: '', description: '' }
     showNew.value = false
     await load()
@@ -230,7 +227,7 @@ async function handleDelete() {
   if (!setToDelete.value?.id) return
 
   try {
-    await deleteGrammarSet(setToDelete.value.id)
+    await grammarSetStore.deleteGrammarSet(setToDelete.value.id)
     showDeleteModal.value = false
     setToDelete.value = null
     await load()
@@ -242,10 +239,6 @@ async function handleDelete() {
 function cancelDelete() {
   setToDelete.value = null
   showDeleteModal.value = false
-}
-
-function goToGrammars(setId: string) {
-  router.push({ name: 'GrammarList', params: { setId } })
 }
 
 function startPractice() {

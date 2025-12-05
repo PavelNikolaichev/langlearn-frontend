@@ -106,7 +106,7 @@
       <!-- Difficulty buttons (only shown after revealing answer) -->
       <div v-if="showAnswer" class="space-y-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <UiButton variant="danger" @click="answerCard('again')" class="py-3">
+          <UiButton variant="destructive" @click="answerCard('again')" class="py-3">
             <div class="text-center">
               <div class="font-medium">Again</div>
               <div class="text-xs opacity-75">&lt; 1 min</div>
@@ -130,7 +130,7 @@
             </div>
           </UiButton>
 
-          <UiButton variant="primary" @click="answerCard('easy')" class="py-3">
+          <UiButton variant="default" @click="answerCard('easy')" class="py-3">
             <div class="text-center">
               <div class="font-medium">Easy</div>
               <div class="text-xs opacity-75">4 days</div>
@@ -155,10 +155,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchFlashcards, type Flashcard } from '@/services/flashcardService'
-import { fetchDeckById, type Deck } from '@/services/deckService'
+import { useDeckStore } from '@/stores/deck'
+import { useFlashcardStore } from '@/stores/flashcard'
+import type { Deck, Flashcard } from '@/api'
 import UiContainer from '@/components/ui/Container.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
@@ -167,9 +168,14 @@ const route = useRoute()
 const router = useRouter()
 const deckId = route.params.id as string
 
-const deck = ref<Deck | null>(null)
+const deckStore = useDeckStore()
+const flashcardStore = useFlashcardStore()
+
+const deck = computed(() => deckStore.currentDeck)
+// Local ref for practice to allow shuffling
 const flashcards = ref<Flashcard[]>([])
-const loading = ref(false)
+const loading = computed(() => deckStore.loading || flashcardStore.loading)
+
 const currentCardIndex = ref(0)
 const showAnswer = ref(false)
 const sessionCompleted = ref(false)
@@ -179,16 +185,13 @@ const currentCard = computed(() => {
 })
 
 async function loadDeck() {
-  loading.value = true
   try {
-    deck.value = await fetchDeckById(deckId)
-    flashcards.value = await fetchFlashcards(deckId)
-
+    await deckStore.fetchDeckById(deckId)
+    await flashcardStore.fetchFlashcards(deckId)
+    flashcards.value = [...flashcardStore.flashcards]
     shuffleArray(flashcards.value)
   } catch (error) {
     console.error('Failed to load deck:', error)
-  } finally {
-    loading.value = false
   }
 }
 
@@ -264,8 +267,6 @@ onMounted(() => {
   document.addEventListener('keydown', handleKeyPress)
 })
 
-// Cleanup
-import { onBeforeUnmount } from 'vue'
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeyPress)
 })

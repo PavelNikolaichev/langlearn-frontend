@@ -67,7 +67,7 @@
 
     <!-- Create New Deck Modal -->
     <Modal :open="showNew" @close="showNew = false">
-      <Card class="w-full max-w-lg">
+      <Card class="w-full max-w-lg" :borderless="true">
         <CardHeader>
           <CardTitle>Create New Deck</CardTitle>
         </CardHeader>
@@ -97,7 +97,7 @@
 
     <!-- Delete Confirmation Modal -->
     <Modal :open="showDeleteModal" @close="cancelDelete">
-      <Card class="w-full max-w-lg">
+      <Card class="w-full max-w-lg" :borderless="true">
         <CardHeader>
           <CardTitle>Delete Deck</CardTitle>
         </CardHeader>
@@ -117,18 +117,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { fetchDecks, createDeck, deleteDeck, type Deck } from '@/services/deckService'
+import { ref, onMounted, computed } from 'vue'
+import { useDeckStore } from '@/stores/deck'
+import type { Deck } from '@/api'
 import { useRouter } from 'vue-router'
-import Card from '@/components/ui/shadcn/Card.vue'
-import CardHeader from '@/components/ui/shadcn/CardHeader.vue'
-import CardTitle from '@/components/ui/shadcn/CardTitle.vue'
-import CardContent from '@/components/ui/shadcn/CardContent.vue'
-import CardFooter from '@/components/ui/shadcn/CardFooter.vue'
-import Button from '@/components/ui/shadcn/Button.vue'
-import Input from '@/components/ui/shadcn/Input.vue'
-import Textarea from '@/components/ui/shadcn/Textarea.vue'
-import Modal from '@/components/ui/shadcn/Modal.vue'
+import Card from '@/components/ui/Card.vue'
+import CardHeader from '@/components/ui/CardHeader.vue'
+import CardTitle from '@/components/ui/CardTitle.vue'
+import CardContent from '@/components/ui/CardContent.vue'
+import CardFooter from '@/components/ui/CardFooter.vue'
+import Button from '@/components/ui/Button.vue'
+import Input from '@/components/ui/Input.vue'
+import Textarea from '@/components/ui/Textarea.vue'
+import Modal from '@/components/ui/Modal.vue'
 import LoadingDots from '@/components/ui/LoadingDots.vue'
 import { PlusIcon, LayersIcon, MessageSquareIcon, InboxIcon, TrashIcon } from 'lucide-vue-next'
 
@@ -136,29 +137,25 @@ interface EnhancedDeck extends Deck {
   cardCount?: number
 }
 
-const decks = ref<EnhancedDeck[]>([])
-const loading = ref(false)
+const deckStore = useDeckStore()
+const router = useRouter()
+
 const showNew = ref(false)
 const showDeleteModal = ref(false)
 const deckToDelete = ref<EnhancedDeck | null>(null)
 const newDeck = ref<Partial<Deck>>({ name: '', description: '', flashcards: [] })
-const router = useRouter()
+
+const decks = computed<EnhancedDeck[]>(() => {
+  return deckStore.decks.map((deck) => ({
+    ...deck,
+    cardCount: deck.flashcards?.length || 0,
+  }))
+})
+
+const loading = computed(() => deckStore.loading)
 
 async function load() {
-  loading.value = true
-  try {
-    const fetchedDecks = await fetchDecks()
-    decks.value = fetchedDecks.map((deck: Deck) => ({
-      ...deck,
-      cardCount: deck.flashcards.length || 0,
-    }))
-    console.log('Fetched decks:', decks.value)
-  } catch (error) {
-    console.error('Failed to fetch decks:', error)
-    decks.value = []
-  } finally {
-    loading.value = false
-  }
+  await deckStore.fetchDecks()
 }
 
 function goToDetail(id: string) {
@@ -169,10 +166,9 @@ async function handleCreateDeck() {
   if (!newDeck.value.name) return
 
   try {
-    await createDeck(newDeck.value)
+    await deckStore.createDeck(newDeck.value)
     newDeck.value = { name: '', description: '', flashcards: [] }
     showNew.value = false
-    await load()
   } catch (error) {
     console.error('Failed to create deck:', error)
   }
@@ -187,10 +183,9 @@ async function handleDelete() {
   if (!deckToDelete.value?.id) return
 
   try {
-    await deleteDeck(deckToDelete.value.id)
+    await deckStore.deleteDeck(deckToDelete.value.id)
     showDeleteModal.value = false
     deckToDelete.value = null
-    await load()
   } catch (error) {
     console.error('Failed to delete deck:', error)
   }

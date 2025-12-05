@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import Sidebar from '@/components/ui/shadcn/Sidebar.vue'
-import { useAuthStore } from '@/stores/auth'
+import Sidebar from '@/components/ui/Sidebar.vue'
+import { useAuthStore } from '@/features/auth/stores/auth'
 
 const auth = useAuthStore()
 </script>

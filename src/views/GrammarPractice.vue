@@ -207,7 +207,10 @@
       </UiCard>
 
       <!-- Keyboard shortcut hint -->
-      <div class="text-center text-xs text-gray-500">Press Enter to submit your answer</div>
+      <div class="text-center text-xs text-gray-500 mt-4">
+        <span v-if="!showAnswer">Press Enter to submit your answer</span>
+        <span v-else>Press Enter or Space for next exercise</span>
+      </div>
     </div>
 
     <!-- Loading state -->
@@ -219,7 +222,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import type { GrammarExercise } from '@/stores/grammar'
 import { useGrammarPracticeStore } from '@/stores/grammar'
@@ -301,7 +304,25 @@ function goBack() {
   router.push({ name: 'GrammarPracticeSetup' })
 }
 
+function handleKeyPress(event: KeyboardEvent) {
+  if (sessionCompleted.value) return
+
+  if (!showAnswer.value && event.key === 'Enter') {
+    if (userAnswer.value.trim()) {
+      submitAnswer()
+    }
+  } else if (showAnswer.value && (event.key === 'Enter' || event.code === 'Space')) {
+    event.preventDefault() // Prevent scrolling for Space
+    nextExercise()
+  }
+}
+
 onMounted(() => {
   loadExercises()
+  document.addEventListener('keydown', handleKeyPress)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeyPress)
 })
 </script>
