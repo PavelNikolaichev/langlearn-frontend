@@ -1,12 +1,14 @@
 <template>
-  <UiContainer>
-    <!-- Header -->
-    <div class="mb-6">
-      <div class="flex justify-between items-center mb-4">
-        <UiButton variant="secondary" size="sm" @click="goBack" class="flex items-center">
+  <UiContainer class="max-w-6xl mx-auto pb-20">
+    <div class="mb-8">
+      <button
+        @click="goBack"
+        class="group flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors mb-4"
+      >
+        <div class="mr-2 p-1 rounded-full group-hover:bg-gray-200 transition-colors">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4 mr-1"
+            class="h-4 w-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -18,272 +20,469 @@
               d="M10 19l-7-7m0 0l7-7m-7 7h18"
             />
           </svg>
-          Back to Grammar Sets
-        </UiButton>
-      </div>
+        </div>
+        Back to Grammar Sets
+      </button>
 
-      <h1 class="text-2xl font-bold text-gray-900">Grammar Practice Setup</h1>
-      <p class="text-gray-600 mt-2">
-        Select grammar rules and optionally a vocabulary deck to practice with AI-generated
-        exercises.
-      </p>
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Practice Setup</h1>
+          <p class="text-gray-600 mt-2 text-lg">Customize your AI learning session.</p>
+        </div>
+
+        <div
+          class="hidden md:flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium border border-indigo-100 shadow-sm"
+        >
+          <span class="font-bold mr-1">{{ selectedGrammars.length }}</span> rules selected
+        </div>
+      </div>
     </div>
 
-    <!-- Model / Backend Configuration -->
-    <UiCard class="mb-6">
-      <template #title>
-        <h2 class="text-lg font-semibold">AI Backend Configuration</h2>
-      </template>
-      <template #content>
-        <div class="space-y-4">
-          <div class="grid md:grid-cols-3 gap-4 items-end">
-            <div>
-              <label class="block text-sm font-medium mb-1">Backend</label>
-              <select v-model="selectedBackend" class="w-full p-2 border rounded-lg text-sm">
-                <option value="openrouter">OpenRouter (Default)</option>
-                <option value="openai">OpenAI</option>
-                <option value="local">Local (Browser)</option>
-              </select>
-            </div>
-            <div v-if="selectedBackend !== 'local'">
-              <label class="block text-sm font-medium mb-1">API Key</label>
-              <input
-                type="password"
-                v-model="apiKey"
-                placeholder="sk-..."
-                class="w-full p-2 border rounded-lg text-sm"
-              />
-            </div>
-            <div v-if="selectedBackend !== 'local'">
-              <label class="block text-sm font-medium mb-1">Model</label>
-              <input
-                type="text"
-                v-model="model"
-                class="w-full p-2 border rounded-lg text-sm"
-                placeholder="anthropic/claude-3.5-sonnet"
-              />
-            </div>
-          </div>
-          <div v-if="selectedBackend !== 'local'" class="grid md:grid-cols-3 gap-4 items-end">
-            <div>
-              <label class="block text-sm font-medium mb-1">Base URL</label>
-              <input
-                type="text"
-                v-model="baseURL"
-                class="w-full p-2 border rounded-lg text-sm"
-                :placeholder="
-                  selectedBackend === 'openrouter'
-                    ? 'https://openrouter.ai/api/v1'
-                    : 'https://api.openai.com/v1'
-                "
-              />
-            </div>
-            <div class="flex items-center mt-6 space-x-3">
-              <UiButton size="sm" variant="secondary" @click="applyBackendConfig">Apply</UiButton>
-              <UiButton
-                v-if="isLocal && modelStatus === 'not-loaded'"
-                size="sm"
-                :disabled="modelStatus !== 'not-loaded'"
-                @click="initializeModel"
-                >Load Local Model</UiButton
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-8 space-y-8">
+        <section>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+              <span
+                class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-sm font-bold mr-3 ring-4 ring-white shadow-sm"
+                >1</span
               >
-            </div>
-            <div class="flex items-center mt-6" v-if="isLocal">
-              <div
-                :class="[
-                  'w-3 h-3 rounded-full mr-2',
-                  modelStatus === 'loaded'
-                    ? 'bg-green-500'
-                    : modelStatus === 'loading'
-                      ? 'bg-yellow-500'
-                      : 'bg-gray-400',
-                ]"
-              ></div>
-              <span class="text-xs text-gray-600">{{ modelStatusText }}</span>
-            </div>
-          </div>
-          <p class="text-xs text-gray-500">
-            For OpenRouter, paste your API key from dashboard. Local backend loads an ONNX model
-            in-browser (experimental, slower on first load).
-          </p>
-        </div>
-      </template>
-    </UiCard>
-
-    <!-- Grammar Selection -->
-    <UiCard class="mb-6">
-      <template #title>
-        <h2 class="text-lg font-semibold">Select Grammar Rules</h2>
-      </template>
-      <template #content>
-        <div v-if="loading" class="py-4">
-          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-        </div>
-
-        <div v-else-if="grammarSets.length === 0" class="text-center py-6">
-          <p class="text-gray-500">No grammar sets available. Create some grammar rules first.</p>
-        </div>
-
-        <div v-else class="space-y-4">
-          <div v-for="set in grammarSets" :key="set.id" class="border rounded-lg p-4">
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="font-medium">{{ set.name }}</h3>
-              <UiButton size="sm" variant="secondary" @click="toggleAllGrammarsInSet(set)">
-                {{ areAllGrammarsSelected(set) ? 'Deselect All' : 'Select All' }}
-              </UiButton>
-            </div>
-
-            <p v-if="set.description" class="text-sm text-gray-600 mb-3">{{ set.description }}</p>
-
-            <div
-              v-if="set.grammars && set.grammars.length > 0"
-              class="grid grid-cols-1 md:grid-cols-2 gap-2"
+              Select Grammar Rules
+            </h2>
+            <span
+              v-if="selectedGrammars.length > 0"
+              class="md:hidden text-sm font-medium text-indigo-600"
             >
-              <label
-                v-for="grammar in set.grammars"
-                :key="grammar.id"
-                class="flex items-center p-2 rounded border hover:bg-gray-50 cursor-pointer"
+              {{ selectedGrammars.length }} selected
+            </span>
+          </div>
+
+          <div v-if="loading" class="py-12 flex justify-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          </div>
+
+          <div
+            v-else-if="grammarSets.length === 0"
+            class="p-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-300"
+          >
+            <p class="text-gray-500">No grammar sets found. Please create one first.</p>
+          </div>
+
+          <div v-else class="space-y-6">
+            <div
+              v-for="set in grammarSets"
+              :key="set.id"
+              class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+            >
+              <div
+                class="px-5 py-4 bg-gray-50/80 border-b border-gray-100 flex justify-between items-center backdrop-blur-sm"
               >
-                <input type="checkbox" :value="grammar" v-model="selectedGrammars" class="mr-2" />
                 <div>
-                  <div class="font-medium text-sm">{{ grammar.name }}</div>
-                  <div v-if="grammar.description" class="text-xs text-gray-500">
-                    {{ grammar.description }}
+                  <h3 class="font-semibold text-gray-800">{{ set.name }}</h3>
+                  <p v-if="set.description" class="text-xs text-gray-500 mt-0.5">
+                    {{ set.description }}
+                  </p>
+                </div>
+                <button
+                  @click="toggleAllGrammarsInSet(set)"
+                  class="text-xs font-bold uppercase tracking-wider text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1.5 rounded transition-colors"
+                >
+                  {{ areAllGrammarsSelected(set) ? 'Deselect All' : 'Select All' }}
+                </button>
+              </div>
+
+              <div class="p-5">
+                <div
+                  v-if="set.grammars && set.grammars.length > 0"
+                  class="grid grid-cols-1 md:grid-cols-2 gap-3"
+                >
+                  <label
+                    v-for="grammar in set.grammars"
+                    :key="grammar.id"
+                    :class="[
+                      'group relative flex items-start p-3 rounded-lg border cursor-pointer transition-all duration-200',
+                      isSelected(grammar)
+                        ? 'bg-indigo-50/50 border-indigo-200 ring-1 ring-indigo-200 shadow-sm'
+                        : 'bg-white border-gray-200 hover:border-indigo-300 hover:shadow-sm',
+                    ]"
+                  >
+                    <div class="flex items-center h-5">
+                      <input
+                        type="checkbox"
+                        :value="grammar"
+                        v-model="selectedGrammars"
+                        class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 transition-colors cursor-pointer"
+                      />
+                    </div>
+                    <div class="ml-3">
+                      <div
+                        :class="[
+                          'text-sm font-medium transition-colors',
+                          isSelected(grammar) ? 'text-indigo-900' : 'text-gray-900',
+                        ]"
+                      >
+                        {{ grammar.name }}
+                      </div>
+                      <div class="text-xs text-gray-500 line-clamp-2 mt-1 leading-relaxed">
+                        {{ grammar.description || 'No description provided.' }}
+                      </div>
+                    </div>
+                  </label>
+                </div>
+                <div v-else class="text-sm text-gray-400 italic text-center py-2">
+                  No rules in this set
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="text-xl font-semibold text-gray-800 flex items-center mb-4">
+            <span
+              class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-sm font-bold mr-3 ring-4 ring-white shadow-sm"
+              >2</span
+            >
+            Add Vocabulary Context
+            <span class="ml-2 text-sm font-normal text-gray-400">(Optional)</span>
+          </h2>
+
+          <UiCard class="overflow-hidden border-gray-200 hover:shadow-md transition-shadow">
+            <template #content>
+              <div class="p-1">
+                <div
+                  v-if="selectedDeck"
+                  class="flex items-center justify-between bg-emerald-50/50 border border-emerald-100 rounded-lg p-4 mx-4 my-4"
+                >
+                  <div class="flex items-center">
+                    <div
+                      class="p-2 bg-white border border-emerald-100 text-emerald-600 rounded-lg mr-4 shadow-sm"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 class="font-bold text-gray-900">{{ selectedDeck.name }}</h4>
+                      <p class="text-sm text-emerald-700 font-medium">
+                        Using {{ selectedDeck.flashcards.length }} vocabulary words
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    @click="clearSelectedDeck"
+                    class="text-gray-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div v-else class="p-4">
+                  <div v-if="loadingDecks" class="py-4 flex justify-center">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
+                  </div>
+                  <div v-else-if="decks.length === 0" class="text-gray-500 italic text-center py-4">
+                    No vocabulary decks available.
+                  </div>
+                  <div
+                    v-else
+                    class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar"
+                  >
+                    <div
+                      v-for="deck in decks"
+                      :key="deck.id"
+                      @click="selectDeck(deck)"
+                      class="group p-3 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer transition-all bg-gray-50/30"
+                    >
+                      <div class="font-medium text-gray-800 group-hover:text-indigo-700">
+                        {{ deck.name }}
+                      </div>
+                      <div class="text-xs text-gray-500 mt-1 flex items-center">
+                        <svg
+                          class="w-3 h-3 mr-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                          ></path>
+                        </svg>
+                        {{ deck.flashcards.length }} cards
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
+            </template>
+          </UiCard>
+        </section>
+      </div>
+
+      <div class="lg:col-span-4">
+        <div class="sticky top-6 space-y-6">
+          <UiCard class="border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-3 bg-gray-50 border-b border-gray-100">
+              <h3 class="font-semibold text-gray-800 text-sm uppercase tracking-wide">
+                Session Settings
+              </h3>
+            </div>
+
+            <div class="p-5 bg-white">
+              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Exercise Count
               </label>
+              <div class="grid grid-cols-4 gap-3">
+                <button
+                  v-for="count in [5, 10, 15, 20]"
+                  :key="count"
+                  @click="exerciseCount = count"
+                  :class="[
+                    'py-2.5 rounded-lg text-sm font-bold transition-all border',
+                    exerciseCount === count
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50',
+                  ]"
+                >
+                  {{ count }}
+                </button>
+              </div>
+            </div>
+          </UiCard>
+
+          <UiCard class="border-gray-200 shadow-sm overflow-hidden">
+            <div
+              class="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between"
+            >
+              <h3 class="font-semibold text-gray-800 text-sm uppercase tracking-wide">
+                AI Configuration
+              </h3>
+              <span
+                :class="[
+                  'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm',
+                  modelStatusColor,
+                ]"
+              >
+                {{ modelStatusText }}
+              </span>
             </div>
 
-            <div v-else class="text-sm text-gray-500 italic">No grammar rules in this set</div>
-          </div>
-        </div>
+            <div class="p-5 bg-white">
+              <div class="space-y-5">
+                <div class="space-y-1.5">
+                  <label class="block text-xs text-gray-500 font-bold uppercase tracking-wide"
+                    >Provider</label
+                  >
+                  <div class="relative">
+                    <select
+                      v-model="selectedBackend"
+                      class="w-full h-10 pl-3 pr-8 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all appearance-none"
+                    >
+                      <option value="openrouter">OpenRouter (Cloud)</option>
+                      <option value="openai">OpenAI (Cloud)</option>
+                      <option value="static">Static (Offline)</option>
+                      <option value="local">Local (Browser/WebLLM)</option>
+                    </select>
+                    <div
+                      class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500"
+                    >
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        ></path>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
 
-        <div v-if="selectedGrammars.length > 0" class="mt-4 p-3 bg-blue-50 rounded-lg">
-          <p class="text-sm text-blue-800">
-            Selected {{ selectedGrammars.length }} grammar rule{{
-              selectedGrammars.length !== 1 ? 's' : ''
-            }}
-          </p>
-        </div>
-      </template>
-    </UiCard>
+                <div v-if="isCloudBackend" class="space-y-5">
+                  <div class="space-y-1.5">
+                    <label class="block text-xs text-gray-500 font-bold uppercase tracking-wide"
+                      >API Key</label
+                    >
+                    <input
+                      type="password"
+                      v-model="apiKey"
+                      placeholder="sk-..."
+                      class="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-300"
+                    />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="block text-xs text-gray-500 font-bold uppercase tracking-wide"
+                      >Model ID</label
+                    >
+                    <input
+                      type="text"
+                      v-model="model"
+                      placeholder="gpt-4o"
+                      class="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-300"
+                    />
+                  </div>
 
-    <!-- Vocabulary Deck Selection (Optional) -->
-    <UiCard class="mb-6">
-      <template #title>
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold">Vocabulary Deck (Optional)</h2>
-          <UiButton v-if="selectedDeck" size="sm" variant="secondary" @click="clearSelectedDeck">
-            Clear Selection
-          </UiButton>
-        </div>
-      </template>
-      <template #content>
-        <p class="text-sm text-gray-600 mb-4">
-          Choose a vocabulary deck to incorporate specific words into the exercises. If none
-          selected, the AI will use general vocabulary.
-        </p>
+                  <div class="pt-2">
+                    <UiButton
+                      size="sm"
+                      variant="secondary"
+                      @click="applyBackendConfig"
+                      class="w-full h-9 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200"
+                    >
+                      Save Configuration
+                    </UiButton>
+                  </div>
+                </div>
 
-        <div v-if="loadingDecks" class="py-4">
-          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-        </div>
+                <div v-else-if="isStatic" class="space-y-4 pt-1">
+                  <div
+                    class="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg border border-blue-100 leading-relaxed"
+                  >
+                    This uses a local static generator with sample exercises — no API key or model
+                    required.
+                  </div>
+                </div>
 
-        <div v-else-if="decks.length === 0" class="text-center py-6">
-          <p class="text-gray-500">No vocabulary decks available.</p>
-        </div>
+                <div v-else class="space-y-4 pt-1">
+                  <div
+                    class="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg border border-blue-100 leading-relaxed"
+                  >
+                    This loads an AI model directly in your browser. It requires WebGPU support.
+                  </div>
+                  <UiButton
+                    v-if="modelStatus === 'not-loaded'"
+                    size="sm"
+                    variant="default"
+                    class="w-full"
+                    @click="initializeModel"
+                  >
+                    Load Local Model
+                  </UiButton>
+                  <div
+                    v-if="modelStatus === 'loading'"
+                    class="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden border border-gray-200"
+                  >
+                    <div
+                      class="bg-indigo-600 h-2 rounded-full animate-progress-indeterminate"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </UiCard>
 
-        <div v-else-if="!selectedDeck" class="space-y-2 max-h-40 overflow-y-auto">
-          <div
-            v-for="deck in decks"
-            :key="deck.id"
-            @click="selectDeck(deck)"
-            class="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-          >
-            <div class="font-medium">{{ deck.name }}</div>
-            <div class="text-sm text-gray-500">
-              {{ deck.flashcards.length }} cards
-              {{ deck.description ? ` • ${deck.description}` : '' }}
+          <div class="pt-4">
+            <UiButton
+              @click="startPractice"
+              :disabled="!canStartPractice"
+              class="w-full py-6 text-lg shadow-xl shadow-indigo-200 transition-all transform active:scale-[0.98] disabled:shadow-none disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none rounded-xl"
+              :class="
+                canStartPractice
+                  ? 'bg-indigo-600 hover:bg-indigo-700'
+                  : 'bg-slate-300 text-slate-500'
+              "
+            >
+              <div class="flex items-center justify-center font-bold tracking-wide">
+                <span v-if="isGenerating">Generating...</span>
+                <span v-else>Start Practice</span>
+
+                <svg
+                  v-if="isGenerating"
+                  class="animate-spin ml-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <svg
+                  v-else
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="ml-2 h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+            </UiButton>
+
+            <div
+              v-if="!canStartPractice"
+              class="text-center mt-3 bg-red-50 text-red-600 px-3 py-2 rounded-lg border border-red-100 text-xs font-medium flex items-center justify-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 mr-1.5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              {{ startPracticeDisabledMessage }}
             </div>
           </div>
         </div>
-
-        <div v-else class="p-3 bg-green-50 border border-green-200 rounded-lg">
-          <div class="font-medium text-green-800">{{ selectedDeck.name }}</div>
-          <div class="text-sm text-green-600">
-            {{ selectedDeck.flashcards.length }} vocabulary words will be used
-          </div>
-        </div>
-      </template>
-    </UiCard>
-
-    <!-- Practice Settings -->
-    <UiCard class="mb-6">
-      <template #title>
-        <h2 class="text-lg font-semibold">Practice Settings</h2>
-      </template>
-      <template #content>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Number of exercises
-            </label>
-            <select v-model="exerciseCount" class="w-full p-2 border rounded-lg">
-              <option value="5">5 exercises</option>
-              <option value="10">10 exercises</option>
-              <option value="15">15 exercises</option>
-              <option value="20">20 exercises</option>
-            </select>
-          </div>
-        </div>
-      </template>
-    </UiCard>
-
-    <!-- Start Practice Button -->
-    <div class="flex justify-center">
-      <UiButton @click="startPractice" :disabled="!canStartPractice" class="px-8 py-3 text-lg">
-        {{ isGenerating ? 'Generating Exercises...' : 'Start Grammar Practice' }}
-        <svg
-          v-if="isGenerating"
-          class="animate-spin -mr-1 ml-3 h-5 w-5"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          ></circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-      </UiButton>
-    </div>
-
-    <div v-if="!canStartPractice" class="text-center mt-4">
-      <p class="text-sm text-gray-500">
-        {{
-          modelStatus !== 'loaded'
-            ? 'Please load the AI model first.'
-            : 'Please select at least one grammar rule.'
-        }}
-      </p>
+      </div>
     </div>
   </UiContainer>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGrammarSetStore } from '@/stores/grammarSet'
 import { useDeckStore } from '@/stores/deck'
-import type { Grammar, GrammarSet, Deck } from '@/api'
+import type { Grammar, GrammarSet, Deck, Flashcard } from '@/api'
 import { LocalLLMService } from '@/services/llm/localLLMService'
 import { useGrammarPracticeStore } from '@/stores/grammar'
 import UiContainer from '@/components/ui/Container.vue'
@@ -307,6 +506,10 @@ const openAIStore = useOpenAIStore()
 // Backend selection state
 const selectedBackend = ref<LLMBackend>('openrouter')
 const isLocal = computed(() => selectedBackend.value === 'local')
+const isStatic = computed(() => selectedBackend.value === 'static')
+const isCloudBackend = computed(
+  () => selectedBackend.value === 'openai' || selectedBackend.value === 'openrouter',
+)
 const exerciseGenerator = ref<ExerciseGeneratorInterface>(getExerciseGenerator('openrouter'))
 
 // Config inputs
@@ -325,31 +528,64 @@ const loadingDecks = ref(false)
 const isGenerating = ref(false)
 const modelStatus = ref<'not-loaded' | 'loading' | 'loaded'>('not-loaded')
 
+// Computed Properties for UI Logic
 const canStartPractice = computed(() => {
-  // Local requires model loaded; remote requires api key + model
-  if (selectedBackend.value === 'local') {
+  // Local requires the local model to be loaded
+  if (isLocal.value) {
     return (
       selectedGrammars.value.length > 0 && modelStatus.value === 'loaded' && !isGenerating.value
     )
   }
-  return (
-    selectedGrammars.value.length > 0 &&
-    apiKey.value.trim().length > 10 &&
-    model.value.trim().length > 0 &&
-    !isGenerating.value
-  )
+  // Static requires only grammars selected
+  if (isStatic.value) {
+    return selectedGrammars.value.length > 0 && !isGenerating.value
+  }
+  // Cloud backends require API key and model
+  if (isCloudBackend.value) {
+    return (
+      selectedGrammars.value.length > 0 &&
+      apiKey.value.trim().length > 10 &&
+      model.value.trim().length > 0 &&
+      !isGenerating.value
+    )
+  }
+  // Default fallback
+  return selectedGrammars.value.length > 0 && !isGenerating.value
 })
 
 const modelStatusText = computed(() => {
   switch (modelStatus.value) {
     case 'loaded':
-      return 'AI Model Ready'
+      return 'Ready'
     case 'loading':
-      return 'Loading AI Model...'
+      return 'Loading'
     default:
-      return 'AI Model Not Loaded'
+      return 'Not Configured'
   }
 })
+
+const modelStatusColor = computed(() => {
+  switch (modelStatus.value) {
+    case 'loaded':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    case 'loading':
+      return 'bg-yellow-50 text-yellow-700 border-yellow-200'
+    default:
+      return 'bg-gray-100 text-gray-500 border-gray-200'
+  }
+})
+
+const startPracticeDisabledMessage = computed(() => {
+  if (isLocal.value && modelStatus.value !== 'loaded') return 'AI Model not ready'
+  if (isCloudBackend.value && (apiKey.value.trim().length <= 10 || model.value.trim().length === 0))
+    return 'Enter a valid API key and model to continue'
+  return 'Select at least one grammar rule and set up AI configuration'
+})
+
+// Helper to check if a specific grammar is selected (for UI highlighting)
+function isSelected(grammar: Grammar): boolean {
+  return selectedGrammars.value.some((g) => g.id === grammar.id)
+}
 
 async function loadData() {
   loading.value = true
@@ -357,7 +593,6 @@ async function loadData() {
 
   try {
     await Promise.all([grammarSetStore.fetchGrammarSets(), deckStore.fetchDecks()])
-
     grammarSets.value = grammarSetStore.grammarSets
     decks.value = deckStore.decks
   } catch (error) {
@@ -369,19 +604,21 @@ async function loadData() {
 }
 
 async function initializeModel() {
-  if (selectedBackend.value !== 'local') {
-    return
-  }
-
+  if (!isLocal.value) return
   modelStatus.value = 'loading'
-
   await llmService.initializeModel?.()
   await checkModelStatus()
 }
 
 async function checkModelStatus() {
-  if (selectedBackend.value !== 'local') {
-    modelStatus.value = 'loaded' // Remote backends assumed ready after config
+  if (isStatic.value) {
+    // Static generator doesn't require loading
+    modelStatus.value = 'loaded'
+    return
+  }
+
+  if (!isLocal.value) {
+    modelStatus.value = 'loaded'
     return
   }
 
@@ -395,21 +632,18 @@ async function checkModelStatus() {
 }
 
 function applyBackendConfig() {
-  if (selectedBackend.value !== 'local') {
+  // For cloud backends update store config. Skip for local and static.
+  if (isCloudBackend.value) {
     openAIStore.setApiKey(apiKey.value.trim())
     openAIStore.setBaseURL(baseURL.value.trim())
     openAIStore.setModel(model.value.trim())
   }
-
   exerciseGenerator.value = getExerciseGenerator(selectedBackend.value)
-
   checkModelStatus()
 }
 
 function toggleAllGrammarsInSet(set: GrammarSet) {
-  if (!set.grammars) {
-    return
-  }
+  if (!set.grammars) return
 
   const areAllSelected = areAllGrammarsSelected(set)
 
@@ -429,7 +663,6 @@ function toggleAllGrammarsInSet(set: GrammarSet) {
 
 function areAllGrammarsSelected(set: GrammarSet): boolean {
   if (!set.grammars || set.grammars.length === 0) return false
-
   return set.grammars.every((grammar) => selectedGrammars.value.some((g) => g.id === grammar.id))
 }
 
@@ -449,21 +682,19 @@ async function startPractice() {
   try {
     const exercises = await exerciseGenerator.value.generateGrammarExercises(
       selectedGrammars.value,
-      selectedDeck.value?.flashcards,
+      selectedDeck.value?.flashcards as Flashcard[],
       exerciseCount.value,
     )
 
-    // Store the data in the store instead of passing through router params
     grammarPracticeStore.setExercises(exercises)
     grammarPracticeStore.setGrammarNames(selectedGrammars.value.map((g) => g.name).join(', '))
     grammarPracticeStore.setDeckName(selectedDeck.value?.name || '')
     grammarPracticeStore.resetSession()
 
-    // Navigate to practice view
     router.push({ name: 'GrammarPractice' })
   } catch (error) {
     console.error('Failed to generate exercises:', error)
-    alert('Failed to generate exercises. Please try again.')
+    alert('Failed to generate exercises. Please check your API key and connection.')
   } finally {
     isGenerating.value = false
   }
@@ -477,4 +708,41 @@ onMounted(() => {
   loadData()
   applyBackendConfig()
 })
+
+// Apply the backend configuration immediately when backend selection changes
+watch(selectedBackend, () => {
+  applyBackendConfig()
+})
 </script>
+
+<style scoped>
+/* Custom scrollbar for deck list */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+    width: 50%;
+  }
+  100% {
+    transform: translateX(200%);
+    width: 50%;
+  }
+}
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.5s infinite linear;
+}
+</style>

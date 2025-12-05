@@ -1,22 +1,54 @@
 <template>
-  <UiCard>
-    <template #title> Add New Flashcard </template>
-    <template #content>
-      <form @submit.prevent="handleSubmit" class="space-y-3">
-        <div>
-          <UiInput v-model="form.front" placeholder="Front side of card" required />
+  <UiCard class="border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-5 py-3 bg-slate-50 border-b border-gray-100 flex items-center gap-2">
+      <span class="font-semibold text-gray-700">Add New Flashcard</span>
+    </div>
+
+    <div class="p-5 bg-white">
+      <form @submit.prevent="handleSubmit" class="space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
+              >Front (Term)</label
+            >
+            <UiInput
+              v-model="form.front"
+              placeholder="e.g. 你好"
+              class="text-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
+              required
+            />
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
+              >Back (Definition)</label
+            >
+            <UiInput
+              v-model="form.back"
+              placeholder="e.g. Hello"
+              class="text-lg bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
+              required
+            />
+          </div>
         </div>
-        <div>
-          <UiInput v-model="form.back" placeholder="Back side of card" required />
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
+            >Notes (Optional)</label
+          >
+          <UiTextarea
+            v-model="form.notes"
+            placeholder="Usage examples, pinyin, or context..."
+            class="resize-none bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
+            :rows="3"
+          />
         </div>
-        <div>
-          <UiTextarea v-model="form.notes" placeholder="Notes (optional)" :rows="3" />
-        </div>
-        <div class="flex justify-end">
-          <UiButton type="submit" variant="default"> Add Flashcard </UiButton>
+
+        <div class="pt-2 flex justify-end">
+          <UiButton type="submit" class="w-full md:w-auto"> Add Flashcard </UiButton>
         </div>
       </form>
-    </template>
+    </div>
   </UiCard>
 </template>
 
@@ -43,10 +75,8 @@ const form = ref<FlashcardForm>({
 
 function handleSubmit() {
   if (!form.value.front || !form.value.back) return
-
   emit('submit', { ...form.value })
 
-  // Reset form
   form.value = {
     front: '',
     back: '',

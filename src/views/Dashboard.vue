@@ -87,7 +87,7 @@
     </div>
 
     <!-- Recent activity section -->
-    <div class="mt-8">
+    <!-- <div class="mt-8">
       <h2 class="text-lg font-medium mb-4">Recent Activity</h2>
       <Card>
         <div class="divide-y divide-border">
@@ -122,7 +122,7 @@
           </div>
         </div>
       </Card>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -178,7 +178,7 @@ function createNewGrammarSet() {
 }
 
 function practiceFlashcards() {
-  router.push('/decklist')
+  router.push('/grammar-practice-setup')
   // Normally you would navigate to a practice page or select a deck to practice
 }
 </script>

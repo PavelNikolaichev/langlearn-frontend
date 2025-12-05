@@ -4,7 +4,15 @@ import type { GrammarExercise } from '@/stores/grammar'
 import type { ExerciseGeneratorInterface } from './exerciseGeneratorInterface'
 
 export class StaticExerciseGenerator implements ExerciseGeneratorInterface {
+  private static instance: StaticExerciseGenerator
   public name = 'StaticExerciseGenerator'
+
+  public static getInstance(): StaticExerciseGenerator {
+    if (!StaticExerciseGenerator.instance) {
+      StaticExerciseGenerator.instance = new StaticExerciseGenerator()
+    }
+    return StaticExerciseGenerator.instance
+  }
 
   async generateGrammarExercises(
     grammars: Array<Grammar>,
